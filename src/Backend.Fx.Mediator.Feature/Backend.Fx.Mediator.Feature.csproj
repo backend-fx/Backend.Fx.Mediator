@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Backend.Fx.Execution.Abstractions" Version="1.1.4" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Backend.Fx.Mediator\Backend.Fx.Mediator.csproj"/>
+    </ItemGroup>
+
+</Project>
