@@ -8,6 +8,8 @@ public class Mediator : IMediator
     private readonly IBackendFxApplication _application;
     private readonly MediatorOptions _options;
     private readonly CancellationTokenSource _cancellationTokenSource = new();
+    private int _runningTaskCount;
+    private volatile bool _disposing;
 
     public Mediator(IBackendFxApplication application, MediatorOptions options)
     {
@@ -17,10 +19,26 @@ public class Mediator : IMediator
 
     public void Notify<TNotification>(TNotification notification) where TNotification : class
     {
-        //todo register Task and wait for it to finish on disposal
-        _ = _application.NotifyAsync(notification, _options.ErrorHandler, _cancellationTokenSource.Token);
+        // Don't accept new notifications during disposal
+        if (_disposing)
+        {
+            return;
+        }
+        
+        Task.Run(async () =>
+        {
+            Interlocked.Increment(ref _runningTaskCount);
+            try
+            {
+                await _application.NotifyAsync(notification, _options.ErrorHandler, _cancellationTokenSource.Token)
+                    .ConfigureAwait(false);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _runningTaskCount);
+            }
+        });
     }
-
 
     public ValueTask<TResponse> RequestAsync<TRequest, TResponse>(
         TRequest request,
@@ -31,8 +49,25 @@ public class Mediator : IMediator
         CancellationToken cancellation = default) where TRequest : IRequest<TResponse>
         => _application.InvokeRequestAsync<TRequest, TResponse>(request, requestor, cancellation);
 
-
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
+        // Mark as disposing to prevent new task creation
+        _disposing = true;
+        
+        // Graceful exit
+        var startTime = DateTime.UtcNow;
+        var timeout = TimeSpan.FromSeconds(3);
+        while (_runningTaskCount > 0 && DateTime.UtcNow - startTime < timeout)
+        {
+            await Task.Delay(50).ConfigureAwait(false);
+        }
+
+        // Kill remaining tasks
+        if (_runningTaskCount > 0)
+        {
+            await _cancellationTokenSource.CancelAsync().ConfigureAwait(false);
+        }
+
+        _cancellationTokenSource.Dispose();
     }
 }

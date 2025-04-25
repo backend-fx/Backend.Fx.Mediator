@@ -4,7 +4,7 @@ using JetBrains.Annotations;
 namespace Backend.Fx.Mediator;
 
 [PublicAPI]
-public interface IMediator : IDisposable
+public interface IMediator : IAsyncDisposable
 {
     void Notify<TNotification>(TNotification notification) where TNotification : class;
     

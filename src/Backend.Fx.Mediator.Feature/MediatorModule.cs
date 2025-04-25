@@ -1,5 +1,6 @@
 using System.Reflection;
 using Backend.Fx.Execution.DependencyInjection;
+using Backend.Fx.Execution.Pipeline;
 using Backend.Fx.Util;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -57,6 +58,8 @@ public class MediatorModule : IModule
         }
         
         compositionRoot.Register(ServiceDescriptor.Singleton<IHandlerRegistry>(handlerRegistry));
-        compositionRoot.Register(ServiceDescriptor.Singleton(_mediator));
+        compositionRoot.Register(ServiceDescriptor.Singleton<IRootMediator>(new RootMediator(_mediator)));
+        compositionRoot.RegisterDecorator(ServiceDescriptor.Scoped<IMediator, MediatorOutbox>());
+        compositionRoot.RegisterDecorator(ServiceDescriptor.Scoped<IOperation, FlushMediatorOutboxOperation>());
     }
 }
