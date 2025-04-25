@@ -2,5 +2,5 @@ namespace Backend.Fx.Mediator;
 
 public interface IInitializableHandler
 {
-    Task InitializeAsync(CancellationToken ct);
+    Task InitializeAsync(CancellationToken cancellation);
 }

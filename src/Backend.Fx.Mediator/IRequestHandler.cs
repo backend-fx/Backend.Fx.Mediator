@@ -8,6 +8,7 @@ public interface IRequestHandler<in TRequest> where TRequest : IRequest<SuccessR
     ValueTask<SuccessResponse> HandleAsync(TRequest request, CancellationToken cancellation = default);
 }
 
+
 [PublicAPI]
 public interface IRequestHandler<in TRequest, TResponse> where TRequest : IRequest<TResponse>
 {

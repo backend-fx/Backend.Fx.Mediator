@@ -1,6 +1,6 @@
+using JetBrains.Annotations;
+
 namespace Backend.Fx.Mediator;
 
-public class SuccessResponse
-{
-    
-}
+[PublicAPI]
+public record SuccessResponse;

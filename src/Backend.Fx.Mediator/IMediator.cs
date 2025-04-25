@@ -4,16 +4,17 @@ using JetBrains.Annotations;
 namespace Backend.Fx.Mediator;
 
 [PublicAPI]
-public interface IMediator : IAsyncDisposable
+public interface IMediator : IAsyncDisposable, IDisposable
 {
-    void Notify<TNotification>(TNotification notification) where TNotification : class;
+    ValueTask Notify<TNotification>(TNotification notification, CancellationToken cancellation = default) 
+        where TNotification : class;
     
-    ValueTask<TResponse> RequestAsync<TRequest, TResponse>(
-        TRequest request,
-        CancellationToken cancellation = default) where TRequest : IRequest<TResponse>;
+    ValueTask<TResponse> RequestAsync<TResponse>(
+        IRequest<TResponse> request,
+        CancellationToken cancellation = default);
 
-    ValueTask<TResponse> RequestAsync<TRequest, TResponse>(
-        TRequest request,
+    ValueTask<TResponse> RequestAsync<TResponse>(
+        IRequest<TResponse> request,
         IIdentity requestor,
-        CancellationToken cancellation = default) where TRequest : IRequest<TResponse>;
+        CancellationToken cancellation = default);
 }

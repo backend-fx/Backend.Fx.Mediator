@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend.Fx.Mediator", "src\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend.Fx.Mediator.Feature", "src\Backend.Fx.Mediator.Feature\Backend.Fx.Mediator.Feature.csproj", "{949B9759-6C80-4A68-8F14-1E0DCB5FCC65}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend.Fx.Mediator.Tests", "src\Backend.Fx.Mediator.Tests\Backend.Fx.Mediator.Tests.csproj", "{65A47FCF-606C-42DA-B76B-B6EDF1BA0F5B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -22,5 +24,9 @@ Global
 		{949B9759-6C80-4A68-8F14-1E0DCB5FCC65}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{949B9759-6C80-4A68-8F14-1E0DCB5FCC65}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{949B9759-6C80-4A68-8F14-1E0DCB5FCC65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{65A47FCF-606C-42DA-B76B-B6EDF1BA0F5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{65A47FCF-606C-42DA-B76B-B6EDF1BA0F5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{65A47FCF-606C-42DA-B76B-B6EDF1BA0F5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{65A47FCF-606C-42DA-B76B-B6EDF1BA0F5B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

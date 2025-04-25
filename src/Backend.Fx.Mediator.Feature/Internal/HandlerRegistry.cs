@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace Backend.Fx.Mediator.Feature;
+namespace Backend.Fx.Mediator.Feature.Internal;
 
 public readonly record struct HandlerKey
 {
@@ -34,6 +34,12 @@ public class HandlerRegistry : IHandlerRegistry
 
     public void Add(HandlerKey key, Type handlerType)
     {
-        _handlers.GetOrAdd(key, _ => []).Add(handlerType);
+        var handlers = _handlers.GetOrAdd(key, _ => []);
+        if (key.ResponseType != typeof(void) && handlers.Count > 0)
+        {
+            throw new InvalidOperationException($"Handler for {key.RequestType} already registered: {handlers.First().Name}");
+        }
+        
+        handlers.Add(handlerType);
     }
 }

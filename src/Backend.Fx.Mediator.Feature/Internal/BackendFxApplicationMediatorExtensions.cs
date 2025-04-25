@@ -1,0 +1,143 @@
+using System.Collections.Concurrent;
+using System.Reflection;
+using System.Security.Principal;
+using Backend.Fx.Exceptions;
+using Backend.Fx.Execution;
+using Backend.Fx.Execution.Pipeline;
+using Backend.Fx.Logging;
+using JetBrains.Annotations;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+
+namespace Backend.Fx.Mediator.Feature.Internal;
+
+[PublicAPI]
+public static class BackendFxApplicationMediatorExtensions
+{
+    private static readonly ILogger Logger = Log.Create(typeof(BackendFxApplicationMediatorExtensions));
+
+    public static async ValueTask<TResponse> InvokeRequestAsync<TResponse>(
+        this IBackendFxApplication application,
+        IRequest<TResponse> request,
+        IIdentity identity,
+        CancellationToken cancellation = default)
+    {
+        var requestType = request.GetType();
+        var responseType = typeof(TResponse);
+
+        var requestHandlerType = application.GetRequestHandlerType<TResponse>(requestType);
+
+        var expectedGenericInterfaceType = typeof(IRequestHandler<,>)
+            .MakeGenericType(requestType, responseType);
+
+        if (expectedGenericInterfaceType.IsAssignableFrom(requestHandlerType))
+        {
+            TResponse? response = default;
+            await application.Invoker.InvokeAsync(async (sp, ct) =>
+            {
+                var handler = sp.GetRequiredService(requestHandlerType);
+
+                // ReSharper disable once SuspiciousTypeConversion.Global
+                if (handler is IInitializableHandler initializableHandler)
+                {
+                    await initializableHandler.InitializeAsync(ct).ConfigureAwait(false);
+                }
+
+                // ReSharper disable once SuspiciousTypeConversion.Global
+                if (handler is IAuthorizedHandler authorizedHandler)
+                {
+                    var isAuthorized = await authorizedHandler.IsAuthorizedAsync(identity, ct).ConfigureAwait(false);
+                    if (isAuthorized == false)
+                    {
+                        throw new ForbiddenException("You are not authorized to perform this action");
+                    }
+                }
+
+                var handleAsyncMethod = requestHandlerType.GetMethod("HandleAsync");
+                if (handleAsyncMethod == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Handler {requestHandlerType.Name} does not have a HandleAsync method");
+                }
+
+                try
+                {
+                    var task = (ValueTask<TResponse>)handleAsyncMethod.Invoke(handler, [request, ct])!;
+                    response = await task.ConfigureAwait(false);
+                }
+                catch (TargetInvocationException tex)
+                {
+                    throw tex.InnerException ?? tex;
+                }
+            }, identity, cancellation).ConfigureAwait(false);
+
+            return response!;
+        }
+
+        throw new InvalidOperationException(
+            $"Handler {requestHandlerType.Name} is not implementing IRequestHandler<{requestType}, {responseType.Name}>");
+    }
+
+    public static async ValueTask NotifyAsync<TNotification>(
+        this IBackendFxApplication application,
+        TNotification notification,
+        INotificationErrorHandler errorHandler,
+        CancellationToken cancellation) where TNotification : class
+    {
+        var notificationHandlerTypes = application.GetNotificationHandlerTypes<TNotification>();
+        if (notificationHandlerTypes.Length == 0)
+        {
+            Logger.LogInformation("No handler types for {@NotificationType} found.", typeof(TNotification));
+            return;
+        }
+
+        var notifier = new SystemIdentity();
+
+        var tasks = new ConcurrentBag<Task>();
+        notificationHandlerTypes.AsParallel().ForAll(notificationHandlerType =>
+        {
+            tasks.Add(Task.Run(async () =>
+            {
+                try
+                {
+                    await application.Invoker.InvokeAsync(async (sp, ct) =>
+                    {
+                        var handler =
+                            (INotificationHandler<TNotification>)sp.GetRequiredService(notificationHandlerType);
+
+                        // ReSharper disable once SuspiciousTypeConversion.Global
+                        if (handler is IInitializableHandler initializableHandler)
+                        {
+                            await initializableHandler.InitializeAsync(ct).ConfigureAwait(false);
+                        }
+
+                        await handler.HandleAsync(notification, ct);
+                    }, notifier, cancellation).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    errorHandler.HandleError(notificationHandlerType, notification, notifier, ex);
+                }
+            }, cancellation));
+        });
+        
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+    }
+
+    private static Type GetRequestHandlerType<TResponse>(this IBackendFxApplication application, Type requestType)
+    {
+        var registry = application.CompositionRoot.ServiceProvider.GetRequiredService<IHandlerRegistry>();
+        var key = new HandlerKey(requestType, typeof(TResponse));
+        var handlerTypes = registry.GetHandlerTypes(key).ToArray();
+        return handlerTypes.Single();
+    }
+
+    private static Type[] GetNotificationHandlerTypes<TNotification>(this IBackendFxApplication application)
+        where TNotification : class
+    {
+        var registry = application.CompositionRoot.ServiceProvider.GetRequiredService<IHandlerRegistry>();
+        var key = HandlerKey.For<TNotification>();
+        var handlerTypes = registry.GetHandlerTypes(key).ToArray();
+        return handlerTypes;
+    }
+}

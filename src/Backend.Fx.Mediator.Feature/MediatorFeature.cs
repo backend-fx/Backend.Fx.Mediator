@@ -1,8 +1,15 @@
 using Backend.Fx.Execution;
 using Backend.Fx.Execution.Features;
+using Backend.Fx.Mediator.Feature.Internal;
 
 namespace Backend.Fx.Mediator.Feature;
 
+/// <summary>
+/// Provides a scoped <see cref="IMediator"/> instance that can be used to call <see cref="IRequestHandler{TRequest}"/>s
+/// synchronously, or to send out notifications to <see cref="INotificationHandler{TNotification}"/>s. Notifications
+/// are queued in an outbox and are not published until the surrounding
+/// <see cref="Backend.Fx.Execution.Pipeline.IOperation"/> completes.
+/// </summary>
 public class MediatorFeature : IFeature
 {
     private readonly MediatorOptions _options = new();
@@ -14,7 +21,7 @@ public class MediatorFeature : IFeature
     
     public void Enable(IBackendFxApplication application)
     {
-        var mediatorModule = new MediatorModule(new Mediator(application, _options), application.Assemblies);
+        var mediatorModule = new MediatorModule(new Internal.Mediator(application, _options), application.Assemblies);
         application.CompositionRoot.RegisterModules(mediatorModule);
     }
 }

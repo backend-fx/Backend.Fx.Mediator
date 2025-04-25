@@ -1,18 +1,18 @@
 using Backend.Fx.Execution.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Backend.Fx.Mediator.Feature;
+namespace Backend.Fx.Mediator.Feature.Internal;
 
 public class FlushMediatorOutboxOperation : IOperation
 {
     private readonly IOperation _operation;
     
-    private readonly IMediatorOutbox _outbox;
+    private readonly IMediator _mediator;
 
-    public FlushMediatorOutboxOperation(IOperation operation, IMediatorOutbox outbox)
+    public FlushMediatorOutboxOperation(IMediator mediator, IOperation operation)
     {
         _operation = operation;
-        _outbox = outbox;
+        _mediator = mediator;
     }
 
     public Task BeginAsync(IServiceScope serviceScope, CancellationToken cancellation = default)
@@ -23,7 +23,7 @@ public class FlushMediatorOutboxOperation : IOperation
     public async Task CompleteAsync(CancellationToken cancellation = default)
     {
         await _operation.CompleteAsync(cancellation);
-        _outbox.Flush();
+        await ((MediatorOutbox)_mediator).FlushAsync(cancellation);
     }
 
     public Task CancelAsync(CancellationToken cancellation = default)
