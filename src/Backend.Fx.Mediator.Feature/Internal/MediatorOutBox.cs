@@ -29,13 +29,13 @@ public class MediatorOutbox : IMediator
 
     public ValueTask<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
-        CancellationToken cancellation = default)
+        CancellationToken cancellation = default) where TResponse : class
         => _rootMediator.RequestAsync(request, cancellation);
 
     public ValueTask<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
         IIdentity requestor,
-        CancellationToken cancellation = default)
+        CancellationToken cancellation = default) where TResponse : class
         => _rootMediator.RequestAsync(request, requestor, cancellation);
 
     public void Dispose()

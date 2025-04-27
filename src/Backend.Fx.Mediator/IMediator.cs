@@ -11,10 +11,10 @@ public interface IMediator : IAsyncDisposable, IDisposable
     
     ValueTask<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
-        CancellationToken cancellation = default);
+        CancellationToken cancellation = default) where TResponse : class;
 
     ValueTask<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
         IIdentity requestor,
-        CancellationToken cancellation = default);
+        CancellationToken cancellation = default) where TResponse : class;
 }

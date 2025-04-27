@@ -29,19 +29,30 @@ public sealed class Mediator : IMediator
                 notification);
             return;
         }
-        
+
         await _application
-            .NotifyAsync(notification, _options.ErrorHandler, cancellation)
+            .NotifyAsync(notification, _options.DefaultNotifier, _options.ErrorHandler, cancellation)
             .ConfigureAwait(false);
     }
 
     public ValueTask<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
-        CancellationToken cancellation = default) => RequestAsync(request, _options.DefaultRequestor, cancellation);
+        CancellationToken cancellation = default) where TResponse : class
+        => RequestAsync(request, _options.DefaultRequestor, cancellation);
 
-    public ValueTask<TResponse> RequestAsync<TResponse>(IRequest<TResponse> request, IIdentity requestor,
-        CancellationToken cancellation = default)
-        => _application.InvokeRequestAsync(request, requestor, cancellation);
+    public async ValueTask<TResponse> RequestAsync<TResponse>(
+        IRequest<TResponse> request,
+        IIdentity requestor,
+        CancellationToken cancellation = default) where TResponse : class
+    {
+        var response = await _application.InvokeRequestAsync(request, requestor, cancellation);
+        if (_options.AutoNotifyResponses)
+        {
+            await Notify(response, cancellation);
+        }
+
+        return response;
+    }
 
     public ValueTask DisposeAsync()
     {

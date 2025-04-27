@@ -3,7 +3,6 @@ using System.Reflection;
 using System.Security.Principal;
 using Backend.Fx.Exceptions;
 using Backend.Fx.Execution;
-using Backend.Fx.Execution.Pipeline;
 using Backend.Fx.Logging;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
@@ -81,6 +80,7 @@ public static class BackendFxApplicationMediatorExtensions
     public static async ValueTask NotifyAsync<TNotification>(
         this IBackendFxApplication application,
         TNotification notification,
+        IIdentity notifier,
         INotificationErrorHandler errorHandler,
         CancellationToken cancellation) where TNotification : class
     {
@@ -90,8 +90,6 @@ public static class BackendFxApplicationMediatorExtensions
             Logger.LogInformation("No handler types for {@NotificationType} found.", typeof(TNotification));
             return;
         }
-
-        var notifier = new SystemIdentity();
 
         var tasks = new ConcurrentBag<Task>();
         notificationHandlerTypes.AsParallel().ForAll(notificationHandlerType =>
