@@ -2,6 +2,7 @@
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
+using Backend.Fx.Exceptions;
 using Backend.Fx.Execution;
 using Backend.Fx.Execution.SimpleInjector;
 using Backend.Fx.Logging;
@@ -17,7 +18,10 @@ namespace Backend.Fx.Mediator.Tests;
 
 public class TheMediatorFeature : IAsyncLifetime
 {
-    private readonly Spy _spy = new();
+    private readonly MyInitializedRequestSpy _initializedRequestSpy = new();
+    private readonly MyTestRequestSpy _testRequestSpy = new();
+    private readonly MyAuthorizedRequestSpy _authorizedRequestSpy = new();
+    private readonly MyTestNotificationSpy _testNotificationSpy = new();
     private readonly IExceptionLogger _exceptionLogger = A.Fake<IExceptionLogger>();
     private readonly INotificationErrorHandler _errorHandler = A.Fake<INotificationErrorHandler>();
     private readonly BackendFxApplication _application;
@@ -29,7 +33,10 @@ public class TheMediatorFeature : IAsyncLifetime
             _exceptionLogger,
             GetType().Assembly);
 
-        _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_spy));
+        _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_authorizedRequestSpy));
+        _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_testRequestSpy));
+        _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_testNotificationSpy));
+        _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_initializedRequestSpy));
 
         _application.EnableFeature(new MediatorFeature(opt =>
         {
@@ -63,7 +70,7 @@ public class TheMediatorFeature : IAsyncLifetime
             await mediator.RequestAsync(new MyTestRequest(), ct);
         });
 
-        A.CallTo(() => _spy.RequestHandler.HandleAsync(A<MyTestRequest>._, A<CancellationToken>._))
+        A.CallTo(() => _testRequestSpy.RequestHandler.HandleAsync(A<MyTestRequest>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
     }
 
@@ -77,10 +84,11 @@ public class TheMediatorFeature : IAsyncLifetime
             return Task.CompletedTask;
         });
 
-        A.CallTo(() => _spy.NotificationHandler.HandleAsync(A<MyTestNotification>._, A<CancellationToken>._))
+        A.CallTo(() =>
+                _testNotificationSpy.NotificationHandler.HandleAsync(A<MyTestNotification>._, A<CancellationToken>._))
             .MustHaveHappenedTwiceExactly();
     }
-    
+
     [Fact]
     public async Task FailingRequestIsPropagated()
     {
@@ -90,7 +98,8 @@ public class TheMediatorFeature : IAsyncLifetime
                 var mediator = sp.GetRequiredService<IMediator>();
                 await mediator.RequestAsync(new FailingRequest(), ct);
 
-                throw new Exception("we should not get here, because the request should fail with DivideByZeroException");
+                throw new Exception(
+                    "we should not get here, because the request should fail with DivideByZeroException");
             }));
     }
 
@@ -104,8 +113,56 @@ public class TheMediatorFeature : IAsyncLifetime
             return Task.CompletedTask;
         });
 
-        A.CallTo(() => _errorHandler.HandleError(A<Type>._, A<FailingNotification>._, A<IIdentity>._, A<DivideByZeroException>._))
+        A.CallTo(() =>
+                _errorHandler.HandleError(A<Type>._, A<FailingNotification>._, A<IIdentity>._,
+                    A<DivideByZeroException>._))
             .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task CallsIsAuthorizedOnAuthorizedHandler()
+    {
+        A.CallTo(() =>
+                _authorizedRequestSpy.AuthorizedHandler.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
+            .Returns(true);
+
+        await _application.Invoker.InvokeAsync(async (sp, ct) =>
+        {
+            var mediator = sp.GetRequiredService<IMediator>();
+            await mediator.RequestAsync(new MyAuthorizedRequest(), ct);
+        });
+
+        A.CallTo(() =>
+                _authorizedRequestSpy.AuthorizedHandler.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+    
+    [Fact]
+    public async Task CallsInitializeOnInitializableHandler()
+    {
+        await _application.Invoker.InvokeAsync(async (sp, ct) =>
+        {
+            var mediator = sp.GetRequiredService<IMediator>();
+            await mediator.RequestAsync(new MyInitializedRequest(), ct);
+        });
+
+        A.CallTo(() =>
+                _initializedRequestSpy.InitializableHandler.InitializeAsync(A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task IsAuthorizedThrowsForbiddenException()
+    {
+        A.CallTo(() =>
+                _authorizedRequestSpy.AuthorizedHandler.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
+            .Returns(false);
+
+        await Assert.ThrowsAsync<ForbiddenException>(async () => await _application.Invoker.InvokeAsync(async (sp, ct) =>
+        {
+            var mediator = sp.GetRequiredService<IMediator>();
+            await mediator.RequestAsync(new MyAuthorizedRequest(), ct);
+        }));
     }
 
     public Task DisposeAsync()

@@ -5,9 +5,9 @@ namespace Backend.Fx.Mediator.Tests;
 
 public class MyRequestHandler : IRequestHandler<MyTestRequest, string>
 {
-    private readonly Spy _spy;
+    private readonly MyTestRequestSpy _spy;
 
-    public MyRequestHandler(Spy spy)
+    public MyRequestHandler(MyTestRequestSpy spy)
     {
         _spy = spy;
     }

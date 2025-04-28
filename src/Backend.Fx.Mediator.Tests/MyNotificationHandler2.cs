@@ -5,9 +5,9 @@ namespace Backend.Fx.Mediator.Tests;
 
 public class MyNotificationHandler2 : INotificationHandler<MyTestNotification>
 {
-    private readonly Spy _spy;
+    private readonly MyTestNotificationSpy _spy;
 
-    public MyNotificationHandler2(Spy spy)
+    public MyNotificationHandler2(MyTestNotificationSpy spy)
     {
         _spy = spy;
     }

@@ -38,25 +38,26 @@ public class MediatorOutbox : IMediator
         CancellationToken cancellation = default) where TResponse : class
         => _rootMediator.RequestAsync(request, requestor, cancellation);
 
+    public async ValueTask FlushAsync(CancellationToken cancellation)
+    {
+        while (_outbox.TryDequeue(out var func))
+        {
+            await func.Invoke(cancellation);
+        }
+    }
+
     public void Dispose()
     {
         if (_outbox.IsEmpty == false)
         {
-            _logger.LogWarning("Mediator outbox is being disposed but still has {Count} notifications in it.", _outbox.Count);
+            _logger.LogWarning("Mediator outbox is being disposed but still has {Count} notifications in it.",
+                _outbox.Count);
         }
     }
 
     public ValueTask DisposeAsync()
     {
         Dispose();
-        return ValueTask.CompletedTask; 
-    }
-
-    public async ValueTask FlushAsync(CancellationToken cancellation)
-    {
-        foreach (var action in _outbox)
-        {
-            await action.Invoke(cancellation);
-        }
+        return ValueTask.CompletedTask;
     }
 }
