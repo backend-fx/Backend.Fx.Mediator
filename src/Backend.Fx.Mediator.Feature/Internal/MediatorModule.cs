@@ -8,10 +8,10 @@ namespace Backend.Fx.Mediator.Feature.Internal;
 
 public class MediatorModule : IModule
 {
-    private readonly Mediator _mediator;
+    private readonly IRootMediator _mediator;
     private readonly Assembly[] _assemblies;
     
-    public MediatorModule(Mediator mediator, params Assembly[] assemblies)
+    public MediatorModule(IRootMediator mediator, params Assembly[] assemblies)
     {
         _mediator = mediator;
         _assemblies = assemblies;
@@ -58,7 +58,7 @@ public class MediatorModule : IModule
         }
         
         compositionRoot.Register(ServiceDescriptor.Singleton<IHandlerRegistry>(handlerRegistry));
-        compositionRoot.Register(ServiceDescriptor.Singleton<IRootMediator>(new RootMediator(_mediator)));
+        compositionRoot.Register(ServiceDescriptor.Singleton<IRootMediator>(_mediator));
 
         compositionRoot.Register(ServiceDescriptor.Scoped<IMediator, MediatorOutbox>());
         compositionRoot.RegisterDecorator(ServiceDescriptor.Scoped<IOperation, FlushMediatorOutboxOperation>());
