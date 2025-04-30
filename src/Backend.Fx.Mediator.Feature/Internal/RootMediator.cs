@@ -2,8 +2,6 @@ using System.Security.Principal;
 
 namespace Backend.Fx.Mediator.Feature.Internal;
 
-public interface IRootMediator : IMediator;
-
 public class RootMediator : IRootMediator
 {
     private readonly Mediator _mediator;

@@ -28,5 +28,10 @@ public class MediatorFeature : IFeature
         application.CompositionRoot.RegisterModules(mediatorModule);
     }
 
+    /// <summary>
+    /// The singleton mediator instance that is used globally in the application. This instance should not be used
+    /// directly from the application code, but only in framework contexts. It does not provide an outbox, that means
+    /// that all notifications are handled immediately and not queued until operation completion. 
+    /// </summary>
     public IRootMediator RootMediator { get; private set; } = null!;
 }
