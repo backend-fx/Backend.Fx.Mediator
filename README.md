@@ -35,3 +35,24 @@ _application.EnableFeature(new MediatorFeature(opt =>
         opt.AutoNotifyResponses = true;
     }));
 ```
+
+Then use an injected `IMediator` instance to request immediately or notify using an outbox 
+
+```csharp
+public class MyService(IMediator mediator) : IMyService, IDomainService
+{
+    public async ValueTask UseMediator()
+    {
+        await mediator.NotifyAsync(new MyTestNotification());
+        MyResponse response = await mediator.RequestAsync(new MyRequest());
+    }
+}
+```
+
+
+Or use the extension methods provided on `IBackendFxApplication` to request and notify immediately.
+
+```
+await _application.NotifyAsync(new MyTestNotification());
+MyResponse response = await _application.RequestAsync(new MyRequest());
+```
