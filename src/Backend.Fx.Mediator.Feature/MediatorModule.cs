@@ -1,27 +1,31 @@
 using System.Reflection;
+using Backend.Fx.Execution;
 using Backend.Fx.Execution.DependencyInjection;
 using Backend.Fx.Execution.Pipeline;
+using Backend.Fx.Mediator.Feature.MediatorImplementation;
+using Backend.Fx.Mediator.Feature.Outbox;
+using Backend.Fx.Mediator.Feature.Registry;
 using Backend.Fx.Util;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Backend.Fx.Mediator.Feature.Internal;
+namespace Backend.Fx.Mediator.Feature;
 
-public class MediatorModule : IModule
+internal class MediatorModule : IModule
 {
-    private readonly IRootMediator _mediator;
-    private readonly Assembly[] _assemblies;
+    private readonly IBackendFxApplication _application;
+    private readonly MediatorOptions _options;
     
-    public MediatorModule(IRootMediator mediator, params Assembly[] assemblies)
+    internal MediatorModule(IBackendFxApplication application, MediatorOptions options)
     {
-        _mediator = mediator;
-        _assemblies = assemblies;
+        _application = application;
+        _options = options;
     }
 
     public void Register(ICompositionRoot compositionRoot)
     {
         var handlerRegistry = new HandlerRegistry();
         
-        var notificationHandlerServices = _assemblies
+        var notificationHandlerServices = _application.Assemblies
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsImplementationOfOpenGenericInterface(typeof(INotificationHandler<>)))
             .Select(type => new ServiceDescriptor(type, type, ServiceLifetime.Scoped));
@@ -39,7 +43,7 @@ public class MediatorModule : IModule
             compositionRoot.Register(notificationHandlerService);
         }
         
-        var requestHandlerServices = _assemblies
+        var requestHandlerServices = _application.Assemblies
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsImplementationOfOpenGenericInterface(typeof(IRequestHandler<,>)))
             .Select(type => new ServiceDescriptor(type, type, ServiceLifetime.Scoped));
@@ -56,11 +60,13 @@ public class MediatorModule : IModule
             handlerRegistry.Add(key, requestHandlerService.ServiceType);
             compositionRoot.Register(requestHandlerService);
         }
-        
-        compositionRoot.Register(ServiceDescriptor.Singleton<IHandlerRegistry>(handlerRegistry));
-        compositionRoot.Register(ServiceDescriptor.Singleton<IRootMediator>(_mediator));
 
-        compositionRoot.Register(ServiceDescriptor.Scoped<IMediator, MediatorOutbox>());
+        var rootMediator = new RootMediator(_application, _options, handlerRegistry);
+        compositionRoot.Register(ServiceDescriptor.Singleton<IRootMediator>(rootMediator));
+
+        compositionRoot.Register(ServiceDescriptor.Scoped<IMediator, MediatorImplementation.Mediator>());
+        compositionRoot.Register(ServiceDescriptor.Scoped<IMediatorOutbox, MediatorOutbox>());
+        compositionRoot.RegisterDecorator(ServiceDescriptor.Scoped<IMediator, WithOutbox>());
         compositionRoot.RegisterDecorator(ServiceDescriptor.Scoped<IOperation, FlushMediatorOutboxOperation>());
 
     }

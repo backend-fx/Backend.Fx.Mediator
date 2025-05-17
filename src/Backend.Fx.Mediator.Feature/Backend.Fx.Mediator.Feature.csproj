@@ -7,7 +7,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Backend.Fx.Execution.Abstractions" Version="1.1.5" />
+        <InternalsVisibleTo Include="Backend.Fx.Mediator.Tests" />
+    </ItemGroup>
+    
+    <ItemGroup>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All"/>
     </ItemGroup>
 
