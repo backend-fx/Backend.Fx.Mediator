@@ -2,18 +2,20 @@ using System.Reflection;
 using Backend.Fx.Execution;
 using Backend.Fx.Execution.DependencyInjection;
 using Backend.Fx.Execution.Pipeline;
+using Backend.Fx.Mediator.Feature.MediatorImplementation;
 using Backend.Fx.Mediator.Feature.Outbox;
+using Backend.Fx.Mediator.Feature.Registry;
 using Backend.Fx.Util;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Backend.Fx.Mediator.Feature.Internal;
+namespace Backend.Fx.Mediator.Feature;
 
-public class MediatorModule : IModule
+internal class MediatorModule : IModule
 {
     private readonly IBackendFxApplication _application;
     private readonly MediatorOptions _options;
     
-    public MediatorModule(IBackendFxApplication application, MediatorOptions options)
+    internal MediatorModule(IBackendFxApplication application, MediatorOptions options)
     {
         _application = application;
         _options = options;
@@ -62,7 +64,7 @@ public class MediatorModule : IModule
         var rootMediator = new RootMediator(_application, _options, handlerRegistry);
         compositionRoot.Register(ServiceDescriptor.Singleton<IRootMediator>(rootMediator));
 
-        compositionRoot.Register(ServiceDescriptor.Scoped<IMediator, Mediator>());
+        compositionRoot.Register(ServiceDescriptor.Scoped<IMediator, MediatorImplementation.Mediator>());
         compositionRoot.Register(ServiceDescriptor.Scoped<IMediatorOutbox, MediatorOutbox>());
         compositionRoot.RegisterDecorator(ServiceDescriptor.Scoped<IMediator, WithOutbox>());
         compositionRoot.RegisterDecorator(ServiceDescriptor.Scoped<IOperation, FlushMediatorOutboxOperation>());

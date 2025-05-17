@@ -1,6 +1,5 @@
 using Backend.Fx.Execution;
 using Backend.Fx.Execution.Features;
-using Backend.Fx.Mediator.Feature.Internal;
 using JetBrains.Annotations;
 
 namespace Backend.Fx.Mediator.Feature;

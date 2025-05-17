@@ -1,8 +1,8 @@
 using System.Security.Principal;
 
-namespace Backend.Fx.Mediator.Feature.Internal;
+namespace Backend.Fx.Mediator.Feature.MediatorImplementation;
 
-public sealed class Mediator : IMediator
+internal sealed class Mediator : IMediator
 {
     private readonly IRootMediator _rootMediator;
     

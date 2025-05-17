@@ -1,9 +1,8 @@
 using System.Security.Principal;
-using JetBrains.Annotations;
 
-namespace Backend.Fx.Mediator.Feature.Internal;
+namespace Backend.Fx.Mediator.Feature.MediatorImplementation;
 
-public class DoNothingNotificationErrorHandler : INotificationErrorHandler
+internal class DoNothingNotificationErrorHandler : INotificationErrorHandler
 {
     public void HandleError<TNotification>(
         Type handlerType,

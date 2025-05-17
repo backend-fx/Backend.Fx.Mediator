@@ -4,19 +4,20 @@ using System.Security.Principal;
 using Backend.Fx.Exceptions;
 using Backend.Fx.Execution;
 using Backend.Fx.Logging;
+using Backend.Fx.Mediator.Feature.Registry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Backend.Fx.Mediator.Feature.Internal;
+namespace Backend.Fx.Mediator.Feature.MediatorImplementation;
 
-public class RootMediator : IRootMediator
+internal class RootMediator : IRootMediator
 {
     private readonly ILogger _logger = Log.Create<RootMediator>();
     private readonly IBackendFxApplication _application;
     private readonly MediatorOptions _options;
     private readonly HandlerRegistry _handlerRegistry;
 
-    public RootMediator(IBackendFxApplication application, MediatorOptions options, HandlerRegistry handlerRegistry)
+    internal RootMediator(IBackendFxApplication application, MediatorOptions options, HandlerRegistry handlerRegistry)
     {
         _application = application;
         _options = options;

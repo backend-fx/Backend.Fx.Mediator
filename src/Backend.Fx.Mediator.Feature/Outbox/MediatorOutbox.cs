@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Backend.Fx.Mediator.Feature.Outbox;
 
-public class MediatorOutbox : IMediatorOutbox
+internal class MediatorOutbox : IMediatorOutbox
 {
     private readonly ILogger _logger = Log.Create<MediatorOutbox>();
     private readonly ConcurrentQueue<Func<CancellationToken, ValueTask>> _outbox = new();
