@@ -23,15 +23,7 @@ public class MediatorFeature : IFeature
 
     public void Enable(IBackendFxApplication application)
     {
-        RootMediator = new RootMediator(new Internal.Mediator(application, _options));
-        var mediatorModule = new MediatorModule(RootMediator, application.Assemblies);
+        var mediatorModule = new MediatorModule(application, _options);
         application.CompositionRoot.RegisterModules(mediatorModule);
     }
-
-    /// <summary>
-    /// The singleton mediator instance that is used globally in the application. This instance should not be used
-    /// directly from the application code, but only in framework contexts. It does not provide an outbox, that means
-    /// that all notifications are handled immediately and not queued until operation completion. 
-    /// </summary>
-    public IRootMediator RootMediator { get; private set; } = null!;
 }

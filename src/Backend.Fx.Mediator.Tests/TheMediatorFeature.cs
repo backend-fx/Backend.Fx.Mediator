@@ -7,7 +7,7 @@ using Backend.Fx.Execution;
 using Backend.Fx.Execution.SimpleInjector;
 using Backend.Fx.Logging;
 using Backend.Fx.Mediator.Feature;
-using Backend.Fx.Mediator.Feature.Internal;
+using Backend.Fx.Mediator.Feature.Outbox;
 using FakeItEasy;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
@@ -56,7 +56,7 @@ public class TheMediatorFeature : IAsyncLifetime
         await _application.Invoker.InvokeAsync((sp, _) =>
         {
             var mediator = sp.GetRequiredService<IMediator>();
-            mediator.ShouldBeOfType<MediatorOutbox>();
+            mediator.ShouldBeOfType<WithOutbox>();
             return Task.CompletedTask;
         });
     }
@@ -64,11 +64,7 @@ public class TheMediatorFeature : IAsyncLifetime
     [Fact]
     public async Task CallsTheSingleRequestHandler()
     {
-        await _application.Invoker.InvokeAsync(async (sp, ct) =>
-        {
-            var mediator = sp.GetRequiredService<IMediator>();
-            await mediator.RequestAsync(new MyTestRequest(), ct);
-        });
+        await _application.RequestAsync(new MyTestRequest());
 
         A.CallTo(() => _testRequestSpy.RequestHandler.HandleAsync(A<MyTestRequest>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
@@ -77,12 +73,7 @@ public class TheMediatorFeature : IAsyncLifetime
     [Fact]
     public async Task CallsAllNotificationHandlers()
     {
-        await _application.Invoker.InvokeAsync((sp, ct) =>
-        {
-            var mediator = sp.GetRequiredService<IMediator>();
-            mediator.Notify(new MyTestNotification(), ct);
-            return Task.CompletedTask;
-        });
+        await _application.NotifyAsync(new MyTestNotification());
 
         A.CallTo(() =>
                 _testNotificationSpy.NotificationHandler.HandleAsync(A<MyTestNotification>._, A<CancellationToken>._))
@@ -93,25 +84,13 @@ public class TheMediatorFeature : IAsyncLifetime
     public async Task FailingRequestIsPropagated()
     {
         await Assert.ThrowsAsync<DivideByZeroException>(async () =>
-            await _application.Invoker.InvokeAsync(async (sp, ct) =>
-            {
-                var mediator = sp.GetRequiredService<IMediator>();
-                await mediator.RequestAsync(new FailingRequest(), ct);
-
-                throw new Exception(
-                    "we should not get here, because the request should fail with DivideByZeroException");
-            }));
+            await _application.RequestAsync(new FailingRequest()));
     }
 
     [Fact]
     public async Task FailingNotificationIsHandled()
     {
-        await _application.Invoker.InvokeAsync((sp, ct) =>
-        {
-            var mediator = sp.GetRequiredService<IMediator>();
-            mediator.Notify(new FailingNotification(), ct);
-            return Task.CompletedTask;
-        });
+        await _application.NotifyAsync(new FailingNotification());
 
         A.CallTo(() =>
                 _errorHandler.HandleError(A<Type>._, A<FailingNotification>._, A<IIdentity>._,
@@ -126,25 +105,17 @@ public class TheMediatorFeature : IAsyncLifetime
                 _authorizedRequestSpy.AuthorizedHandler.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
             .Returns(true);
 
-        await _application.Invoker.InvokeAsync(async (sp, ct) =>
-        {
-            var mediator = sp.GetRequiredService<IMediator>();
-            await mediator.RequestAsync(new MyAuthorizedRequest(), ct);
-        });
+        await _application.RequestAsync(new MyAuthorizedRequest());
 
         A.CallTo(() =>
                 _authorizedRequestSpy.AuthorizedHandler.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
     }
-    
+
     [Fact]
     public async Task CallsInitializeOnInitializableHandler()
     {
-        await _application.Invoker.InvokeAsync(async (sp, ct) =>
-        {
-            var mediator = sp.GetRequiredService<IMediator>();
-            await mediator.RequestAsync(new MyInitializedRequest(), ct);
-        });
+        await _application.RequestAsync(new MyInitializedRequest());
 
         A.CallTo(() =>
                 _initializedRequestSpy.InitializableHandler.InitializeAsync(A<CancellationToken>._))
@@ -158,11 +129,8 @@ public class TheMediatorFeature : IAsyncLifetime
                 _authorizedRequestSpy.AuthorizedHandler.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
             .Returns(false);
 
-        await Assert.ThrowsAsync<ForbiddenException>(async () => await _application.Invoker.InvokeAsync(async (sp, ct) =>
-        {
-            var mediator = sp.GetRequiredService<IMediator>();
-            await mediator.RequestAsync(new MyAuthorizedRequest(), ct);
-        }));
+        await Assert.ThrowsAsync<ForbiddenException>(async () =>
+            await _application.RequestAsync(new MyAuthorizedRequest()));
     }
 
     public Task DisposeAsync()

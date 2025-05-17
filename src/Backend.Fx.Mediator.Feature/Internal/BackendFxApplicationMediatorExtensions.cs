@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Reflection;
 using System.Security.Principal;
 using Backend.Fx.Exceptions;
@@ -75,51 +74,6 @@ public static class BackendFxApplicationMediatorExtensions
 
         throw new InvalidOperationException(
             $"Handler {requestHandlerType.Name} is not implementing IRequestHandler<{requestType}, {responseType.Name}>");
-    }
-
-    public static async ValueTask NotifyAsync<TNotification>(
-        this IBackendFxApplication application,
-        TNotification notification,
-        IIdentity notifier,
-        INotificationErrorHandler errorHandler,
-        CancellationToken cancellation) where TNotification : class
-    {
-        var notificationHandlerTypes = application.GetNotificationHandlerTypes<TNotification>();
-        if (notificationHandlerTypes.Length == 0)
-        {
-            Logger.LogInformation("No handler types for {@NotificationType} found.", typeof(TNotification));
-            return;
-        }
-
-        var tasks = new ConcurrentBag<Task>();
-        notificationHandlerTypes.AsParallel().ForAll(notificationHandlerType =>
-        {
-            tasks.Add(Task.Run(async () =>
-            {
-                try
-                {
-                    await application.Invoker.InvokeAsync(async (sp, ct) =>
-                    {
-                        var handler =
-                            (INotificationHandler<TNotification>)sp.GetRequiredService(notificationHandlerType);
-
-                        // ReSharper disable once SuspiciousTypeConversion.Global
-                        if (handler is IInitializableHandler initializableHandler)
-                        {
-                            await initializableHandler.InitializeAsync(ct).ConfigureAwait(false);
-                        }
-
-                        await handler.HandleAsync(notification, ct);
-                    }, notifier, cancellation).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    errorHandler.HandleError(notificationHandlerType, notification, notifier, ex);
-                }
-            }, cancellation));
-        });
-        
-        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
     private static Type GetRequestHandlerType<TResponse>(this IBackendFxApplication application, Type requestType)

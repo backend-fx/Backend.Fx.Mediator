@@ -1,67 +1,47 @@
 using System.Security.Principal;
-using Backend.Fx.Execution;
-using Backend.Fx.Logging;
-using Microsoft.Extensions.Logging;
 
 namespace Backend.Fx.Mediator.Feature.Internal;
 
 public sealed class Mediator : IMediator
 {
-    private readonly ILogger _logger = Log.Create<Mediator>();
-    private readonly IBackendFxApplication _application;
-    private readonly MediatorOptions _options;
-    private volatile bool _disposing;
-
-    public Mediator(IBackendFxApplication application, MediatorOptions options)
+    private readonly IRootMediator _rootMediator;
+    
+    public Mediator(IRootMediator rootMediator)
     {
-        _application = application;
-        _options = options;
+        _rootMediator = rootMediator;
     }
 
-    public async ValueTask Notify<TNotification>(TNotification notification, CancellationToken cancellation = default)
-        where TNotification : class
-    {
-        // Don't accept new notifications during disposal
-        if (_disposing)
-        {
-            _logger.LogWarning(
-                "Discarding notification {Notification} because the mediator is disposing.",
-                notification);
-            return;
-        }
 
-        await _application
-            .NotifyAsync(notification, _options.DefaultNotifier, _options.ErrorHandler, cancellation)
-            .ConfigureAwait(false);
+    public ValueTask NotifyAsync<TNotification>(TNotification notification, CancellationToken cancellation = default) where TNotification : class
+    {
+        return _rootMediator.NotifyAsync(notification, cancellation);
     }
 
-    public ValueTask<TResponse> RequestAsync<TResponse>(
-        IRequest<TResponse> request,
-        CancellationToken cancellation = default) where TResponse : class
-        => RequestAsync(request, _options.DefaultRequestor, cancellation);
-
-    public async ValueTask<TResponse> RequestAsync<TResponse>(
-        IRequest<TResponse> request,
-        IIdentity requestor,
-        CancellationToken cancellation = default) where TResponse : class
+    public ValueTask NotifyAsync<TNotification>(TNotification notification, IIdentity notifier,
+        CancellationToken cancellation = default) where TNotification : class
     {
-        var response = await _application.InvokeRequestAsync(request, requestor, cancellation);
-        if (_options.AutoNotifyResponses)
-        {
-            await Notify(response, cancellation);
-        }
-
-        return response;
+        return _rootMediator.NotifyAsync(notification, notifier, cancellation);
     }
 
-    public ValueTask DisposeAsync()
+    public ValueTask NotifyAsync<TNotification>(TNotification notification, INotificationErrorHandler errorHandler,
+        CancellationToken cancellation = default) where TNotification : class
     {
-        _disposing = true;
-        return ValueTask.CompletedTask;
+        return _rootMediator.NotifyAsync(notification, errorHandler, cancellation);
     }
 
-    public void Dispose()
+    public ValueTask NotifyAsync<TNotification>(TNotification notification, IIdentity notifier,
+        INotificationErrorHandler errorHandler, CancellationToken cancellation = default) where TNotification : class
     {
-        _disposing = true;
+        return _rootMediator.NotifyAsync(notification, notifier, errorHandler, cancellation);
+    }
+
+    public ValueTask<TResponse> RequestAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellation = default) where TResponse : class
+    {
+        return _rootMediator.RequestAsync(request, cancellation);
+    }
+
+    public ValueTask<TResponse> RequestAsync<TResponse>(IRequest<TResponse> request, IIdentity requestor, CancellationToken cancellation = default) where TResponse : class
+    {
+        return _rootMediator.RequestAsync(request, requestor, cancellation);
     }
 }
