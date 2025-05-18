@@ -1,5 +1,6 @@
 using Backend.Fx.Execution;
 using Backend.Fx.Execution.Features;
+using Backend.Fx.Mediator.Feature.Registry;
 using JetBrains.Annotations;
 
 namespace Backend.Fx.Mediator.Feature;
@@ -20,9 +21,12 @@ public class MediatorFeature : IFeature
         configure?.Invoke(_options);
     }
 
+    public IReadOnlyList<HandlerMetaData> HandlerMetaData { get; private set; } = [];
+
     public void Enable(IBackendFxApplication application)
     {
         var mediatorModule = new MediatorModule(application, _options);
         application.CompositionRoot.RegisterModules(mediatorModule);
+        HandlerMetaData = mediatorModule.Handlers.ToArray();
     }
 }

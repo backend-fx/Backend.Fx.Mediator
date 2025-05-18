@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
@@ -131,6 +132,14 @@ public class TheMediatorFeature : IAsyncLifetime
 
         await Assert.ThrowsAsync<ForbiddenException>(async () =>
             await _application.RequestAsync(new MyAuthorizedRequest()));
+    }
+
+    [Fact]
+    public void HasMetaData()
+    {
+        var handlerMetaData = _application.GetFeature<MediatorFeature>()!.HandlerMetaData;
+        handlerMetaData.ShouldNotBeEmpty();
+        handlerMetaData.Single(md => md.HandlerType == typeof(MyAuthorizedRequestHandler)).IsApiGet().ShouldBeTrue();
     }
 
     public Task DisposeAsync()
