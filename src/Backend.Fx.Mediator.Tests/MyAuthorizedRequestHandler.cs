@@ -1,9 +1,11 @@
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
+using Backend.Fx.Mediator.Api;
 
 namespace Backend.Fx.Mediator.Tests;
 
+[ApiGet]
 public class MyAuthorizedRequestHandler : IRequestHandler<MyAuthorizedRequest, string>, IAuthorizedHandler
 {
     private readonly MyAuthorizedRequestSpy _spy;

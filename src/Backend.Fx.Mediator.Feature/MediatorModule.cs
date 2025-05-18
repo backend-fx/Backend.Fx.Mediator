@@ -14,6 +14,7 @@ internal class MediatorModule : IModule
 {
     private readonly IBackendFxApplication _application;
     private readonly MediatorOptions _options;
+    private readonly HandlerRegistry _handlerRegistry = new();
     
     internal MediatorModule(IBackendFxApplication application, MediatorOptions options)
     {
@@ -21,10 +22,10 @@ internal class MediatorModule : IModule
         _options = options;
     }
 
+    public IEnumerable<HandlerMetaData> Handlers => _handlerRegistry.MetaData;
+    
     public void Register(ICompositionRoot compositionRoot)
     {
-        var handlerRegistry = new HandlerRegistry();
-        
         var notificationHandlerServices = _application.Assemblies
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsImplementationOfOpenGenericInterface(typeof(INotificationHandler<>)))
@@ -39,7 +40,7 @@ internal class MediatorModule : IModule
                 .First();
 
             var key = new HandlerKey(notificationType);
-            handlerRegistry.Add(key, notificationHandlerService.ServiceType);
+            _handlerRegistry.Add(key, notificationHandlerService.ServiceType);
             compositionRoot.Register(notificationHandlerService);
         }
         
@@ -57,11 +58,11 @@ internal class MediatorModule : IModule
                 .ToArray();
 
             var key = new HandlerKey(genericTypeArgs[0], genericTypeArgs[1]);
-            handlerRegistry.Add(key, requestHandlerService.ServiceType);
+            _handlerRegistry.Add(key, requestHandlerService.ServiceType);
             compositionRoot.Register(requestHandlerService);
         }
 
-        var rootMediator = new RootMediator(_application, _options, handlerRegistry);
+        var rootMediator = new RootMediator(_application, _options, _handlerRegistry);
         compositionRoot.Register(ServiceDescriptor.Singleton<IRootMediator>(rootMediator));
 
         compositionRoot.Register(ServiceDescriptor.Scoped<IMediator, MediatorImplementation.Mediator>());
