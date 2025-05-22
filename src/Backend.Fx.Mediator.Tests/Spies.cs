@@ -13,12 +13,17 @@ public class MyTestRequestSpy
 
 public class MyAuthorizedRequestSpy
 {
-    public IAuthorizedHandler AuthorizedHandler { get; } =
-        A.Fake<IAuthorizedHandler>();
+    public IAuthorizedHandler AuthorizedHandler1 { get; } = A.Fake<IAuthorizedHandler>();
+    public IAuthorizedHandler<MyAuthorizedRequest2> AuthorizedHandler2 { get; } = A.Fake<IAuthorizedHandler<MyAuthorizedRequest2>>();
 
-    public Task<bool> IsAuthorizedAsync(IIdentity identity, CancellationToken cancellation)
+    public ValueTask<bool> IsAuthorizedAsync(IIdentity identity, CancellationToken cancellation)
     {
-        return AuthorizedHandler.IsAuthorizedAsync(identity, cancellation);
+        return AuthorizedHandler1.IsAuthorizedAsync(identity, cancellation);
+    }
+    
+    public ValueTask<bool> IsAuthorizedAsync(IIdentity identity, MyAuthorizedRequest2 request, CancellationToken cancellation)
+    {
+        return AuthorizedHandler2.IsAuthorizedAsync(identity, request, cancellation);
     }
 }
 

@@ -103,13 +103,29 @@ public class TheMediatorFeature : IAsyncLifetime
     public async Task CallsIsAuthorizedOnAuthorizedHandler()
     {
         A.CallTo(() =>
-                _authorizedRequestSpy.AuthorizedHandler.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
+                _authorizedRequestSpy.AuthorizedHandler1.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
             .Returns(true);
 
-        await _application.RequestAsync(new MyAuthorizedRequest());
+        await _application.RequestAsync(new MyAuthorizedRequest1());
 
         A.CallTo(() =>
-                _authorizedRequestSpy.AuthorizedHandler.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
+                _authorizedRequestSpy.AuthorizedHandler1.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+    
+    [Fact]
+    public async Task CallsIsAuthorizedOnAuthorizedHandlerWithRequest()
+    {
+        var request = new MyAuthorizedRequest2();
+        
+        A.CallTo(() =>
+                _authorizedRequestSpy.AuthorizedHandler2.IsAuthorizedAsync(A<IIdentity>._, request, A<CancellationToken>._))
+            .Returns(true);
+
+        await _application.RequestAsync(request);
+
+        A.CallTo(() =>
+                _authorizedRequestSpy.AuthorizedHandler2.IsAuthorizedAsync(A<IIdentity>._, request, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
     }
 
@@ -127,11 +143,11 @@ public class TheMediatorFeature : IAsyncLifetime
     public async Task IsAuthorizedThrowsForbiddenException()
     {
         A.CallTo(() =>
-                _authorizedRequestSpy.AuthorizedHandler.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
+                _authorizedRequestSpy.AuthorizedHandler1.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
             .Returns(false);
 
         await Assert.ThrowsAsync<ForbiddenException>(async () =>
-            await _application.RequestAsync(new MyAuthorizedRequest()));
+            await _application.RequestAsync(new MyAuthorizedRequest1()));
     }
 
     [Fact]
@@ -139,7 +155,7 @@ public class TheMediatorFeature : IAsyncLifetime
     {
         var handlerMetaData = _application.GetFeature<MediatorFeature>()!.HandlerMetaData;
         handlerMetaData.ShouldNotBeEmpty();
-        handlerMetaData.Single(md => md.HandlerType == typeof(MyAuthorizedRequestHandler)).IsApiGet().ShouldBeTrue();
+        handlerMetaData.Single(md => md.HandlerType == typeof(MyAuthorizedRequestHandler1)).IsApiGet().ShouldBeTrue();
     }
 
     public Task DisposeAsync()

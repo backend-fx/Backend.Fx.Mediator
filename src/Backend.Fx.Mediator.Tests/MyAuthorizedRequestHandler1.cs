@@ -6,22 +6,22 @@ using Backend.Fx.Mediator.Api;
 namespace Backend.Fx.Mediator.Tests;
 
 [ApiGet]
-public class MyAuthorizedRequestHandler : IRequestHandler<MyAuthorizedRequest, string>, IAuthorizedHandler
+public class MyAuthorizedRequestHandler1 : IRequestHandler<MyAuthorizedRequest1, string>, IAuthorizedHandler
 {
     private readonly MyAuthorizedRequestSpy _spy;
 
-    public MyAuthorizedRequestHandler(MyAuthorizedRequestSpy spy)
+    public MyAuthorizedRequestHandler1(MyAuthorizedRequestSpy spy)
     {
         _spy = spy;
     }
 
-    public async ValueTask<string> HandleAsync(MyAuthorizedRequest request, CancellationToken cancellation = default)
+    public async ValueTask<string> HandleAsync(MyAuthorizedRequest1 request, CancellationToken cancellation = default)
     {
         await Task.Delay(50, cancellation);
         return "hello";
     }
 
-    public Task<bool> IsAuthorizedAsync(IIdentity identity, CancellationToken cancellation = default)
+    public ValueTask<bool> IsAuthorizedAsync(IIdentity identity, CancellationToken cancellation = default)
     {
         return _spy.IsAuthorizedAsync(identity, cancellation);
     }
