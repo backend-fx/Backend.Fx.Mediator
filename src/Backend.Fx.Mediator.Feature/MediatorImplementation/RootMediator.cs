@@ -7,6 +7,7 @@ using Backend.Fx.Logging;
 using Backend.Fx.Mediator.Feature.Registry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using static System.Threading.Tasks.ValueTask;
 
 namespace Backend.Fx.Mediator.Feature.MediatorImplementation;
 
@@ -122,6 +123,26 @@ internal class RootMediator : IRootMediator
                     }
                 }
 
+                var genericAuthorizedHandlerType = typeof(IAuthorizedHandler<>).MakeGenericType(requestType);
+                if (genericAuthorizedHandlerType.IsInstanceOfType(handler))
+                {
+                    var methodInfo = genericAuthorizedHandlerType.GetMethod(
+                        "IsAuthorizedAsync",
+                        BindingFlags.Instance | BindingFlags.Public);
+
+                    if (methodInfo == null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Handler {requestHandlerType.Name} does not have an IsAuthorizedAsync method");
+                    }
+
+                    var isAuthorized = await (ValueTask<bool>)(methodInfo.Invoke(handler, [requestor, request, ct]) ?? FromResult(false));
+                    if (isAuthorized != true)
+                    {
+                        throw new ForbiddenException("You are not authorized to perform this action");
+                    }
+                }
+
                 var handleAsyncMethod = requestHandlerType.GetMethod("HandleAsync");
                 if (handleAsyncMethod == null)
                 {
@@ -146,8 +167,8 @@ internal class RootMediator : IRootMediator
         throw new InvalidOperationException(
             $"Handler {requestHandlerType.Name} is not implementing IRequestHandler<{requestType}, {responseType.Name}>");
     }
-    
-    
+
+
     private Type GetRequestHandlerType<TResponse>(Type requestType)
     {
         var key = new HandlerKey(requestType, typeof(TResponse));
