@@ -43,6 +43,7 @@ public class TheMediatorFeature : IAsyncLifetime
         {
             opt.DefaultRequestor = new GenericIdentity("TestUser");
             opt.ErrorHandler = _errorHandler;
+            opt.AutoNotifyResponses = true;
         }));
     }
 

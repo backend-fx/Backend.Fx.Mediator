@@ -161,6 +161,12 @@ internal class RootMediator : IRootMediator
                 }
             }, requestor, cancellation).ConfigureAwait(false);
 
+            if (response != null && _options.AutoNotifyResponses)
+            {
+                _logger.LogInformation("Sending response of type {Response} also as notification", responseType.Name);
+                await _application.NotifyAsync(response, requestor, _options.ErrorHandler, cancellation).ConfigureAwait(false);
+            }
+            
             return response!;
         }
 
