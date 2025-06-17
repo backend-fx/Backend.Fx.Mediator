@@ -75,10 +75,10 @@ public class TheMediatorFeature : IAsyncLifetime
     [Fact]
     public async Task CallsAllNotificationHandlers()
     {
-        await _application.NotifyAsync(new MyTestNotification());
+        await _application.NotifyAsync(new MyTestNotification1());
 
         A.CallTo(() =>
-                _testNotificationSpy.NotificationHandler.HandleAsync(A<MyTestNotification>._, A<CancellationToken>._))
+                _testNotificationSpy.NotificationHandler.HandleAsync(A<MyTestNotification1>._, A<CancellationToken>._))
             .MustHaveHappenedTwiceExactly();
     }
 
@@ -113,20 +113,22 @@ public class TheMediatorFeature : IAsyncLifetime
                 _authorizedRequestSpy.AuthorizedHandler1.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
     }
-    
+
     [Fact]
     public async Task CallsIsAuthorizedOnAuthorizedHandlerWithRequest()
     {
         var request = new MyAuthorizedRequest2();
-        
+
         A.CallTo(() =>
-                _authorizedRequestSpy.AuthorizedHandler2.IsAuthorizedAsync(A<IIdentity>._, request, A<CancellationToken>._))
+                _authorizedRequestSpy.AuthorizedHandler2.IsAuthorizedAsync(A<IIdentity>._, request,
+                    A<CancellationToken>._))
             .Returns(true);
 
         await _application.RequestAsync(request);
 
         A.CallTo(() =>
-                _authorizedRequestSpy.AuthorizedHandler2.IsAuthorizedAsync(A<IIdentity>._, request, A<CancellationToken>._))
+                _authorizedRequestSpy.AuthorizedHandler2.IsAuthorizedAsync(A<IIdentity>._, request,
+                    A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
     }
 
@@ -137,6 +139,28 @@ public class TheMediatorFeature : IAsyncLifetime
 
         A.CallTo(() =>
                 _initializedRequestSpy.InitializableHandler.InitializeAsync(A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task CallsInheritedHandlers()
+    {
+        await _application.NotifyAsync(new MyTestNotification3());
+
+        A.CallTo(() =>
+                TheConcreteNotificationHandler3.Spy.HandleAsync(A<MyTestNotification3>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+    
+    [Fact]
+    public async Task CallsAutoNotifyHandlers()
+    {
+        Fake.ClearRecordedCalls(MyTestResponseHandler.Spy);
+
+        await _application.RequestAsync(new MyTestRequest());
+
+        A.CallTo(() =>
+                MyTestResponseHandler.Spy.HandleAsync(A<TestResponse>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
     }
 

@@ -7,8 +7,8 @@ namespace Backend.Fx.Mediator.Tests;
 
 public class MyTestRequestSpy
 {
-    public IRequestHandler<MyTestRequest, string> RequestHandler { get; } =
-        A.Fake<IRequestHandler<MyTestRequest, string>>();
+    public IRequestHandler<MyTestRequest, TestResponse> RequestHandler { get; } =
+        A.Fake<IRequestHandler<MyTestRequest, TestResponse>>();
 }
 
 public class MyAuthorizedRequestSpy
@@ -29,8 +29,8 @@ public class MyAuthorizedRequestSpy
 
 public class MyTestNotificationSpy
 {
-    public INotificationHandler<MyTestNotification> NotificationHandler { get; } =
-        A.Fake<INotificationHandler<MyTestNotification>>();
+    public INotificationHandler<MyTestNotification1> NotificationHandler { get; } =
+        A.Fake<INotificationHandler<MyTestNotification1>>();
 }
 
 public class MyInitializedRequestSpy
