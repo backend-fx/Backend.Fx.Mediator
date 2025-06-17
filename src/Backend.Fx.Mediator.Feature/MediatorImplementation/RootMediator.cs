@@ -136,7 +136,9 @@ internal class RootMediator : IRootMediator
                             $"Handler {requestHandlerType.Name} does not have an IsAuthorizedAsync method");
                     }
 
-                    var isAuthorized = await (ValueTask<bool>)(methodInfo.Invoke(handler, [requestor, request, ct]) ?? FromResult(false));
+                    var isAuthorized =
+                        await (ValueTask<bool>)(methodInfo.Invoke(handler, [requestor, request, ct]) ??
+                                                FromResult(false));
                     if (isAuthorized != true)
                     {
                         throw new ForbiddenException("You are not authorized to perform this action");
@@ -164,9 +166,10 @@ internal class RootMediator : IRootMediator
             if (response != null && _options.AutoNotifyResponses)
             {
                 _logger.LogInformation("Sending response of type {Response} also as notification", responseType.Name);
-                await _application.NotifyAsync(response, requestor, _options.ErrorHandler, cancellation).ConfigureAwait(false);
+                await _application.NotifyAsync(response, requestor, _options.ErrorHandler, cancellation)
+                    .ConfigureAwait(false);
             }
-            
+
             return response!;
         }
 
@@ -179,7 +182,9 @@ internal class RootMediator : IRootMediator
     {
         var key = new HandlerKey(requestType, typeof(TResponse));
         var handlerTypes = _handlerRegistry.GetHandlerTypes(key).ToArray();
-        return handlerTypes.Single();
+        return handlerTypes.SingleOrDefault()
+               ?? throw new InvalidOperationException(
+                   $"No handler found for request type {requestType.Name} with response type {typeof(TResponse).Name}");
     }
 
     private Type[] GetNotificationHandlerTypes<TNotification>() where TNotification : class

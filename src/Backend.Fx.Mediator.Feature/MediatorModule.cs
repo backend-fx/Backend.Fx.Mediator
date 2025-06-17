@@ -28,6 +28,7 @@ internal class MediatorModule : IModule
     {
         var notificationHandlerServices = _application.Assemblies
             .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => !type.IsInterface && type.IsClass && !type.IsAbstract)
             .Where(type => type.IsImplementationOfOpenGenericInterface(typeof(INotificationHandler<>)))
             .Select(type => new ServiceDescriptor(type, type, ServiceLifetime.Scoped));
 
@@ -46,6 +47,7 @@ internal class MediatorModule : IModule
         
         var requestHandlerServices = _application.Assemblies
             .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => !type.IsInterface && type.IsClass && !type.IsAbstract)
             .Where(type => type.IsImplementationOfOpenGenericInterface(typeof(IRequestHandler<,>)))
             .Select(type => new ServiceDescriptor(type, type, ServiceLifetime.Scoped));
 
