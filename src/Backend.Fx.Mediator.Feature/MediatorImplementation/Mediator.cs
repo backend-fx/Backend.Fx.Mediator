@@ -1,14 +1,24 @@
 using System.Security.Principal;
+using Backend.Fx.Logging;
+using Backend.Fx.Mediator.Feature.Registry;
+using Microsoft.Extensions.Logging;
 
 namespace Backend.Fx.Mediator.Feature.MediatorImplementation;
 
 internal sealed class Mediator : IMediator
 {
+    private readonly ILogger _logger = Log.Create<Mediator>();
     private readonly IRootMediator _rootMediator;
-    
-    public Mediator(IRootMediator rootMediator)
+    private readonly IServiceProvider _serviceProvider;
+    private readonly MediatorOptions _options;
+    private readonly HandlerRegistry _handlerRegistry;
+
+    public Mediator(IRootMediator rootMediator, IServiceProvider serviceProvider, MediatorOptions options, HandlerRegistry handlerRegistry)
     {
         _rootMediator = rootMediator;
+        _serviceProvider = serviceProvider;
+        _options = options;
+        _handlerRegistry = handlerRegistry;
     }
 
 
@@ -40,8 +50,18 @@ internal sealed class Mediator : IMediator
         return _rootMediator.RequestAsync(request, cancellation);
     }
 
-    public ValueTask<TResponse> RequestAsync<TResponse>(IRequest<TResponse> request, IIdentity requestor, CancellationToken cancellation = default) where TResponse : class
+    public async ValueTask<TResponse> RequestAsync<TResponse>(IRequest<TResponse> request, IIdentity requestor, CancellationToken cancellation = default) where TResponse : class
     {
-        return _rootMediator.RequestAsync(request, requestor, cancellation);
+        TResponse response = await new RequestDispatch(_handlerRegistry, _serviceProvider)
+            .DispatchAsync(request, requestor, cancellation)
+            .ConfigureAwait(false);
+        
+        if (_options.AutoNotifyResponses)
+        {
+            _logger.LogInformation("Sending response of type {Response} also as notification", typeof(TResponse).Name);
+            await NotifyAsync(response, cancellation).ConfigureAwait(false);
+        }
+
+        return response;
     }
 }

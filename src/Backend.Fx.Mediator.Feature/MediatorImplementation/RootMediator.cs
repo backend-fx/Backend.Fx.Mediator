@@ -1,13 +1,10 @@
 using System.Collections.Concurrent;
-using System.Reflection;
 using System.Security.Principal;
-using Backend.Fx.Exceptions;
 using Backend.Fx.Execution;
 using Backend.Fx.Logging;
 using Backend.Fx.Mediator.Feature.Registry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using static System.Threading.Tasks.ValueTask;
 
 namespace Backend.Fx.Mediator.Feature.MediatorImplementation;
 
@@ -39,32 +36,31 @@ internal class RootMediator : IRootMediator
         }
 
         var tasks = new ConcurrentBag<Task>();
-        notificationHandlerTypes.AsParallel().ForAll(notificationHandlerType =>
+
+        foreach (var notificationHandlerType in notificationHandlerTypes)
         {
-            tasks.Add(Task.Run(async () =>
+            var task = _application.Invoker.InvokeAsync(async (sp, ct) =>
             {
                 try
                 {
-                    await _application.Invoker.InvokeAsync(async (sp, ct) =>
+                    var handler = sp.GetRequiredService(notificationHandlerType);
+
+                    // ReSharper disable once SuspiciousTypeConversion.Global
+                    if (handler is IInitializableHandler initializableHandler)
                     {
-                        var handler =
-                            (INotificationHandler<TNotification>)sp.GetRequiredService(notificationHandlerType);
+                        await initializableHandler.InitializeAsync(ct).ConfigureAwait(false);
+                    }
 
-                        // ReSharper disable once SuspiciousTypeConversion.Global
-                        if (handler is IInitializableHandler initializableHandler)
-                        {
-                            await initializableHandler.InitializeAsync(ct).ConfigureAwait(false);
-                        }
-
-                        await handler.HandleAsync(notification, ct);
-                    }, notifier, cancellation).ConfigureAwait(false);
+                    await ((INotificationHandler<TNotification>)handler).HandleAsync(notification, ct);
                 }
                 catch (Exception ex)
                 {
                     errorHandler.HandleError(notificationHandlerType, notification, notifier, ex);
                 }
-            }, cancellation));
-        });
+            }, notifier, cancellation);
+
+            tasks.Add(task);
+        }
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
@@ -92,91 +88,20 @@ internal class RootMediator : IRootMediator
         IIdentity requestor,
         CancellationToken cancellation = default) where TResponse : class
     {
-        var requestType = request.GetType();
-        var responseType = typeof(TResponse);
+        TResponse response = null!;
 
-        var requestHandlerType = _handlerRegistry.GetRequestHandlerType<TResponse>(requestType);
+        await _application.Invoker.InvokeAsync(
+            async (sp, ct) =>
+                response = await new RequestDispatch(_handlerRegistry, sp).DispatchAsync(request, requestor, ct),
+            requestor,
+            cancellation).ConfigureAwait(false);
 
-        var expectedGenericInterfaceType = typeof(IRequestHandler<,>)
-            .MakeGenericType(requestType, responseType);
-
-        if (expectedGenericInterfaceType.IsAssignableFrom(requestHandlerType))
+        if (_options.AutoNotifyResponses)
         {
-            TResponse? response = null;
-            await _application.Invoker.InvokeAsync(async (sp, ct) =>
-            {
-                var handler = sp.GetRequiredService(requestHandlerType);
-
-                // ReSharper disable once SuspiciousTypeConversion.Global
-                if (handler is IInitializableHandler initializableHandler)
-                {
-                    await initializableHandler.InitializeAsync(ct).ConfigureAwait(false);
-                }
-
-                // ReSharper disable once SuspiciousTypeConversion.Global
-                if (handler is IAuthorizedHandler authorizedHandler)
-                {
-                    var isAuthorized = await authorizedHandler.IsAuthorizedAsync(requestor, ct).ConfigureAwait(false);
-                    if (isAuthorized == false)
-                    {
-                        throw new ForbiddenException("You are not authorized to perform this action");
-                    }
-                }
-
-                var genericAuthorizedHandlerType = typeof(IAuthorizedHandler<>).MakeGenericType(requestType);
-                if (genericAuthorizedHandlerType.IsInstanceOfType(handler))
-                {
-                    var methodInfo = genericAuthorizedHandlerType.GetMethod(
-                        "IsAuthorizedAsync",
-                        BindingFlags.Instance | BindingFlags.Public);
-
-                    if (methodInfo == null)
-                    {
-                        throw new InvalidOperationException(
-                            $"Handler {requestHandlerType.Name} does not have an IsAuthorizedAsync method");
-                    }
-
-                    var isAuthorized =
-                        await (ValueTask<bool>)(methodInfo.Invoke(handler, [requestor, request, ct]) ??
-                                                FromResult(false));
-                    if (isAuthorized != true)
-                    {
-                        throw new ForbiddenException("You are not authorized to perform this action");
-                    }
-                }
-
-                var handleAsyncMethod = requestHandlerType.GetMethod("HandleAsync");
-                if (handleAsyncMethod == null)
-                {
-                    throw new InvalidOperationException(
-                        $"Handler {requestHandlerType.Name} does not have a HandleAsync method");
-                }
-
-                try
-                {
-                    var task = (ValueTask<TResponse>)handleAsyncMethod.Invoke(handler, [request, ct])!;
-                    response = await task.ConfigureAwait(false);
-                }
-                catch (TargetInvocationException tex)
-                {
-                    throw tex.InnerException ?? tex;
-                }
-            }, requestor, cancellation).ConfigureAwait(false);
-
-            if (response != null && _options.AutoNotifyResponses)
-            {
-                _logger.LogInformation("Sending response of type {Response} also as notification", responseType.Name);
-                await _application.NotifyAsync(response, requestor, _options.ErrorHandler, cancellation)
-                    .ConfigureAwait(false);
-            }
-
-            return response!;
+            _logger.LogInformation("Sending response of type {Response} also as notification", typeof(TResponse).Name);
+            await NotifyAsync(response, cancellation).ConfigureAwait(false);
         }
 
-        throw new InvalidOperationException(
-            $"Handler {requestHandlerType.Name} is not implementing IRequestHandler<{requestType}, {responseType.Name}>");
+        return response;
     }
-
-
-    
 }
