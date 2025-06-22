@@ -35,7 +35,7 @@ internal class RootMediator : IRootMediator
             return;
         }
 
-        var tasks = new ConcurrentBag<Task>();
+        var tasks = new List<Task>();
 
         foreach (var notificationHandlerType in notificationHandlerTypes)
         {
