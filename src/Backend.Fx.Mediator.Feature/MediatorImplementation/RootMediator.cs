@@ -31,7 +31,7 @@ internal class RootMediator : IRootMediator
         INotificationErrorHandler errorHandler,
         CancellationToken cancellation) where TNotification : class
     {
-        var notificationHandlerTypes = GetNotificationHandlerTypes<TNotification>();
+        var notificationHandlerTypes = _handlerRegistry.GetNotificationHandlerTypes<TNotification>();
         if (notificationHandlerTypes.Length == 0)
         {
             _logger.LogInformation("No handler types for {@NotificationType} found.", typeof(TNotification));
@@ -95,7 +95,7 @@ internal class RootMediator : IRootMediator
         var requestType = request.GetType();
         var responseType = typeof(TResponse);
 
-        var requestHandlerType = GetRequestHandlerType<TResponse>(requestType);
+        var requestHandlerType = _handlerRegistry.GetRequestHandlerType<TResponse>(requestType);
 
         var expectedGenericInterfaceType = typeof(IRequestHandler<,>)
             .MakeGenericType(requestType, responseType);
@@ -178,19 +178,5 @@ internal class RootMediator : IRootMediator
     }
 
 
-    private Type GetRequestHandlerType<TResponse>(Type requestType)
-    {
-        var key = new HandlerKey(requestType, typeof(TResponse));
-        var handlerTypes = _handlerRegistry.GetHandlerTypes(key).ToArray();
-        return handlerTypes.SingleOrDefault()
-               ?? throw new InvalidOperationException(
-                   $"No handler found for request type {requestType.Name} with response type {typeof(TResponse).Name}");
-    }
-
-    private Type[] GetNotificationHandlerTypes<TNotification>() where TNotification : class
-    {
-        var key = HandlerKey.For<TNotification>();
-        var handlerTypes = _handlerRegistry.GetHandlerTypes(key).ToArray();
-        return handlerTypes;
-    }
+    
 }
