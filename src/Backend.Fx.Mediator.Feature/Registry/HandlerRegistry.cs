@@ -24,4 +24,20 @@ internal class HandlerRegistry
 
         handlers.Add(handlerType);
     }
+    
+    public Type GetRequestHandlerType<TResponse>(Type requestType)
+    {
+        var key = new HandlerKey(requestType, typeof(TResponse));
+        var handlerTypes = GetHandlerTypes(key).ToArray();
+        return handlerTypes.SingleOrDefault()
+               ?? throw new InvalidOperationException(
+                   $"No handler found for request type {requestType.Name} with response type {typeof(TResponse).Name}");
+    }
+
+    public Type[] GetNotificationHandlerTypes<TNotification>() where TNotification : class
+    {
+        var key = HandlerKey.For<TNotification>();
+        var handlerTypes = GetHandlerTypes(key).ToArray();
+        return handlerTypes;
+    }
 }

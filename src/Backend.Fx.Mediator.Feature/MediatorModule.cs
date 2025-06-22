@@ -67,7 +67,8 @@ internal class MediatorModule : IModule
         var rootMediator = new RootMediator(_application, _options, _handlerRegistry);
         compositionRoot.Register(ServiceDescriptor.Singleton<IRootMediator>(rootMediator));
 
-        compositionRoot.Register(ServiceDescriptor.Scoped<IMediator, MediatorImplementation.Mediator>());
+        compositionRoot.Register(ServiceDescriptor.Scoped<IMediator>(
+            sp => new MediatorImplementation.Mediator(rootMediator, sp, _options, _handlerRegistry)));
         compositionRoot.Register(ServiceDescriptor.Scoped<IMediatorOutbox, MediatorOutbox>());
         compositionRoot.RegisterDecorator(ServiceDescriptor.Scoped<IMediator, WithOutbox>());
         compositionRoot.RegisterDecorator(ServiceDescriptor.Scoped<IOperation, FlushMediatorOutboxOperation>());
