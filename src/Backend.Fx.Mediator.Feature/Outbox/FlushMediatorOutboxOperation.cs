@@ -30,4 +30,6 @@ internal class FlushMediatorOutboxOperation : IOperation
     {
         return _operation.CancelAsync(cancellation);
     }
+
+    public int Counter => _operation.Counter;
 }

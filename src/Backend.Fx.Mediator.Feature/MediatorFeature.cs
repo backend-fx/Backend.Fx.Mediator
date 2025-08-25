@@ -1,3 +1,4 @@
+using System.Reflection;
 using Backend.Fx.Execution;
 using Backend.Fx.Execution.Features;
 using Backend.Fx.Mediator.Feature.Registry;
@@ -29,4 +30,6 @@ public class MediatorFeature : IFeature
         application.CompositionRoot.RegisterModules(mediatorModule);
         HandlerMetaData = mediatorModule.Handlers.ToArray();
     }
+
+    public IEnumerable<Assembly> Assemblies { get; } = [];
 }
