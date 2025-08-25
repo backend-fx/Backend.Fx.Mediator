@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Principal;
 using Backend.Fx.Execution;
 using Backend.Fx.Logging;
@@ -22,7 +22,11 @@ internal class RootMediator : IRootMediator
         _handlerRegistry = handlerRegistry;
     }
 
-    public async ValueTask NotifyAsync<TNotification>(
+    [SuppressMessage(
+        "Usage",
+        "CA2012:Use ValueTasks correctly", 
+        Justification = "This method allows processing of notifications in the background. Await it only if you need to wait for all notifications to be processed.")]
+    public ValueTask NotifyAsync<TNotification>(
         TNotification notification,
         IIdentity notifier,
         INotificationErrorHandler errorHandler,
@@ -32,7 +36,7 @@ internal class RootMediator : IRootMediator
         if (notificationHandlerTypes.Length == 0)
         {
             _logger.LogInformation("No handler types for {@NotificationType} found.", typeof(TNotification));
-            return;
+            return ValueTask.CompletedTask;
         }
 
         var tasks = new List<Task>();
@@ -62,7 +66,7 @@ internal class RootMediator : IRootMediator
             tasks.Add(task);
         }
 
-        await Task.WhenAll(tasks).ConfigureAwait(false);
+        return new ValueTask(Task.WhenAll(tasks));
     }
 
 
