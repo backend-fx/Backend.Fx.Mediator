@@ -9,7 +9,7 @@
     <ItemGroup>
         <PackageReference Include="Backend.Fx.Execution.Abstractions" Version="1.1.8" />
         <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.202" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.203" PrivateAssets="All" />
     </ItemGroup>
 
 </Project>
