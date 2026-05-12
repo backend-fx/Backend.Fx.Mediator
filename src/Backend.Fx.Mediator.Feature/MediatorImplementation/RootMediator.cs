@@ -121,7 +121,7 @@ internal class RootMediator : IRootMediator
         if (_options.AutoNotifyResponses)
         {
             _logger.LogInformation("Sending response of type {Response} also as notification", typeof(TResponse).Name);
-            await NotifyAsync(response, _options.DefaultNotifier, cancellation).ConfigureAwait(false);
+            await NotifyAsync(response, requestor, cancellation).ConfigureAwait(false);
         }
 
         return response;
