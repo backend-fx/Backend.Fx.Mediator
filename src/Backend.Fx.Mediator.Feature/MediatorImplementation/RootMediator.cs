@@ -24,8 +24,9 @@ internal class RootMediator : IRootMediator
 
     [SuppressMessage(
         "Usage",
-        "CA2012:Use ValueTasks correctly", 
-        Justification = "This method allows processing of notifications in the background. Await it only if you need to wait for all notifications to be processed.")]
+        "CA2012:Use ValueTasks correctly",
+        Justification =
+            "This method allows processing of notifications in the background. Await it only if you need to wait for all notifications to be processed.")]
     public ValueTask NotifyAsync<TNotification>(
         TNotification notification,
         IIdentity notifier,
@@ -82,10 +83,27 @@ internal class RootMediator : IRootMediator
         CancellationToken cancellation = default) where TNotification : class
         => NotifyAsync(notification, _options.DefaultNotifier, errorHandler, cancellation);
 
-    public ValueTask<TResponse> RequestAsync<TResponse>(
+    public async ValueTask<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
         CancellationToken cancellation = default) where TResponse : class
-        => RequestAsync(request, _options.DefaultRequestor, cancellation);
+    {
+        TResponse response = null!;
+
+        await _application.Invoker.InvokeAsync(
+            async (sp, ct) =>
+                response = await new RequestDispatch(_handlerRegistry, sp).DispatchAsync(request,
+                    _options.DefaultRequestor, ct),
+            _options.DefaultRequestor,
+            cancellation).ConfigureAwait(false);
+
+        if (_options.AutoNotifyResponses)
+        {
+            _logger.LogInformation("Sending response of type {Response} also as notification", typeof(TResponse).Name);
+            await NotifyAsync(response, _options.DefaultNotifier, cancellation).ConfigureAwait(false);
+        }
+
+        return response;
+    }
 
     public async ValueTask<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
@@ -103,7 +121,7 @@ internal class RootMediator : IRootMediator
         if (_options.AutoNotifyResponses)
         {
             _logger.LogInformation("Sending response of type {Response} also as notification", typeof(TResponse).Name);
-            await NotifyAsync(response, cancellation).ConfigureAwait(false);
+            await NotifyAsync(response, _options.DefaultNotifier, cancellation).ConfigureAwait(false);
         }
 
         return response;
