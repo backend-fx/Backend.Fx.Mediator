@@ -50,9 +50,8 @@ public class MyService(IMediator mediator) : IMyService, IDomainService
 ```
 
 
-Or use the extension methods provided on `IBackendFxApplication` to request and notify immediately.
+Or use the extension methods provided on `IBackendFxApplication` to request immediately.
 
 ```
-await _application.NotifyAsync(new MyTestNotification());
 MyResponse response = await _application.RequestAsync(new MyRequest());
 ```
