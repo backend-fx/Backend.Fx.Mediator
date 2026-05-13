@@ -3,24 +3,27 @@ using System.Security.Principal;
 using Backend.Fx.Exceptions;
 using Backend.Fx.Execution;
 using Backend.Fx.Logging;
+using Backend.Fx.Mediator.Feature.Diagnostics;
 using Backend.Fx.Mediator.Feature.Registry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NodaTime;
 
 namespace Backend.Fx.Mediator.Feature;
 
 internal interface IApplicationMediator
 {
-    ValueTask NotifyAsync<TNotification>(
+    Task NotifyAsync<TNotification>(
         TNotification notification,
         IIdentity? notifier = null,
         INotificationErrorHandler? errorHandler = null,
         CancellationToken cancellation = default) where TNotification : class;
 
-    ValueTask<TResponse> RequestAsync<TResponse>(
+    Task<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
         IIdentity? requestor = null,
         CancellationToken cancellation = default) where TResponse : class;
+    
 }
 
 internal class ApplicationMediator : IApplicationMediator
@@ -29,8 +32,10 @@ internal class ApplicationMediator : IApplicationMediator
     private readonly IBackendFxApplication _application;
     private readonly HandlerRegistry _handlerRegistry;
     private readonly MediatorOptions _options;
-
-    internal ApplicationMediator(IBackendFxApplication application, HandlerRegistry handlerRegistry,
+    
+    internal ApplicationMediator(
+        IBackendFxApplication application,
+        HandlerRegistry handlerRegistry,
         MediatorOptions options)
     {
         _application = application;
@@ -38,7 +43,7 @@ internal class ApplicationMediator : IApplicationMediator
         _options = options;
     }
 
-    public ValueTask NotifyAsync<TNotification>(
+    public Task NotifyAsync<TNotification>(
         TNotification notification,
         IIdentity? notifier = null,
         INotificationErrorHandler? errorHandler = null,
@@ -51,40 +56,50 @@ internal class ApplicationMediator : IApplicationMediator
         if (notificationHandlerTypes.Length == 0)
         {
             _logger.LogInformation("No handler types for {@NotificationType} found.", typeof(TNotification));
-            return ValueTask.CompletedTask;
+            return Task.CompletedTask;
         }
 
-        var tasks = new List<Task>();
+        var tasks = notificationHandlerTypes
+            .Select(nht => NotifyHandlerAndHandleError(notification, nht, notifier, errorHandler, cancellation));
 
-        foreach (var notificationHandlerType in notificationHandlerTypes)
-        {
-            var task = _application.Invoker.InvokeAsync(async (sp, ct) =>
-            {
-                try
-                {
-                    var handler = sp.GetRequiredService(notificationHandlerType);
-
-                    // ReSharper disable once SuspiciousTypeConversion.Global
-                    if (handler is IInitializableHandler initializableHandler)
-                    {
-                        await initializableHandler.InitializeAsync(ct).ConfigureAwait(false);
-                    }
-
-                    await ((INotificationHandler<TNotification>)handler).HandleAsync(notification, ct);
-                }
-                catch (Exception ex)
-                {
-                    errorHandler.HandleError(notificationHandlerType, notification, notifier, ex);
-                }
-            }, notifier, cancellation);
-
-            tasks.Add(task);
-        }
-
-        return new ValueTask(Task.WhenAll(tasks));
+        return Task.WhenAll(tasks);
     }
 
-    public async ValueTask<TResponse> RequestAsync<TResponse>(
+    private async Task NotifyHandlerAndHandleError<TNotification>(
+        TNotification notification,
+        Type handlerType,
+        IIdentity notifier,
+        INotificationErrorHandler errorHandler,
+        CancellationToken cancellation) where TNotification : notnull
+    {
+        try
+        {
+            await _application.Invoker.InvokeAsync(async (sp, ct) =>
+            {
+                var handler = sp.GetRequiredService(handlerType);
+
+                // ReSharper disable once SuspiciousTypeConversion.Global
+                if (handler is IInitializableHandler initializableHandler)
+                {
+                    await initializableHandler.InitializeAsync(ct).ConfigureAwait(false);
+                }
+
+                await ((INotificationHandler<TNotification>)handler).HandleAsync(notification, ct);
+            }, notifier, cancellation);
+        }
+        catch (Exception ex)
+        {
+            errorHandler.HandleError(handlerType, notification, notifier, ex);
+            _application.CompositionRoot.ServiceProvider.GetRequiredService<IFailedNotifications>().Add(
+                new FailedNotification(
+                    SystemClock.Instance.GetCurrentInstant(), 
+                    notification,
+                    notifier,
+                    ex));
+        }
+    }
+
+    public async Task<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
         IIdentity? requestor = null,
         CancellationToken cancellation = default) where TResponse : class

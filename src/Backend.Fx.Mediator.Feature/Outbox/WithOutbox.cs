@@ -18,40 +18,40 @@ internal class WithOutbox : IMediator
     }
 
 
-    public ValueTask NotifyAsync<TNotification>(TNotification notification, CancellationToken cancellation = default)
+    public Task NotifyAsync<TNotification>(TNotification notification, CancellationToken cancellation = default)
         where TNotification : class
     {
         _outbox.Enqueue(ct => _mediator.NotifyAsync(notification, ct));
-        return ValueTask.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    public ValueTask NotifyAsync<TNotification>(TNotification notification, IIdentity notifier,
+    public Task NotifyAsync<TNotification>(TNotification notification, IIdentity notifier,
         CancellationToken cancellation = default) where TNotification : class
     {
         _outbox.Enqueue(ct => _mediator.NotifyAsync(notification, notifier, ct));
-        return ValueTask.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    public ValueTask NotifyAsync<TNotification>(TNotification notification, INotificationErrorHandler errorHandler,
+    public Task NotifyAsync<TNotification>(TNotification notification, INotificationErrorHandler errorHandler,
         CancellationToken cancellation = default) where TNotification : class
     {
         _outbox.Enqueue(ct => _mediator.NotifyAsync(notification, errorHandler, ct));
-        return ValueTask.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    public ValueTask NotifyAsync<TNotification>(TNotification notification, IIdentity notifier,
+    public Task NotifyAsync<TNotification>(TNotification notification, IIdentity notifier,
         INotificationErrorHandler errorHandler, CancellationToken cancellation = default) where TNotification : class
     {
         _outbox.Enqueue(ct => _mediator.NotifyAsync(notification, notifier, errorHandler, ct));
-        return ValueTask.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    public ValueTask<TResponse> RequestAsync<TResponse>(
+    public Task<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
         CancellationToken cancellation = default) where TResponse : class
         => _mediator.RequestAsync(request, cancellation);
 
-    public ValueTask<TResponse> RequestAsync<TResponse>(
+    public Task<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
         IIdentity requestor,
         CancellationToken cancellation = default) where TResponse : class

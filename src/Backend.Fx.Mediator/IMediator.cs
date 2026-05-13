@@ -6,33 +6,33 @@ namespace Backend.Fx.Mediator;
 [PublicAPI]
 public interface IMediator
 {
-    ValueTask NotifyAsync<TNotification>(TNotification notification, CancellationToken cancellation = default) 
+    Task NotifyAsync<TNotification>(TNotification notification, CancellationToken cancellation = default) 
         where TNotification : class;
     
-    ValueTask NotifyAsync<TNotification>(
+    Task NotifyAsync<TNotification>(
         TNotification notification, 
         IIdentity notifier,
         CancellationToken cancellation = default)
         where TNotification : class;
     
-    ValueTask NotifyAsync<TNotification>(
+    Task NotifyAsync<TNotification>(
         TNotification notification, 
         INotificationErrorHandler errorHandler,
         CancellationToken cancellation = default)
         where TNotification : class;
     
-    ValueTask NotifyAsync<TNotification>(
+    Task NotifyAsync<TNotification>(
         TNotification notification, 
         IIdentity notifier,
         INotificationErrorHandler errorHandler,
         CancellationToken cancellation = default)
         where TNotification : class;
     
-    ValueTask<TResponse> RequestAsync<TResponse>(
+    Task<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
         CancellationToken cancellation = default) where TResponse : class;
 
-    ValueTask<TResponse> RequestAsync<TResponse>(
+    Task<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
         IIdentity requestor,
         CancellationToken cancellation = default) where TResponse : class;
