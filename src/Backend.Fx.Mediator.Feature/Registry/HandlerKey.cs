@@ -1,6 +1,6 @@
 namespace Backend.Fx.Mediator.Feature.Registry;
 
-public readonly record struct HandlerKey
+internal readonly record struct HandlerKey
 {
     public static HandlerKey For<TNotification>() => new(typeof(TNotification), typeof(void));
 

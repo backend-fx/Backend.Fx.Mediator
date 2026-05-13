@@ -2,9 +2,9 @@ using System.Security.Principal;
 
 namespace Backend.Fx.Mediator.Feature.AutoNotification;
 
-public class WithAutoNotification : IMediator
+internal class WithAutoNotification : IMediator
 {
-    private IMediator _mediator;
+    private readonly IMediator _mediator;
 
     public WithAutoNotification(IMediator mediator)
     {

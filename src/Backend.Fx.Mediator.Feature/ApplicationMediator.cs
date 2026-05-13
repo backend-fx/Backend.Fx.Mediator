@@ -9,21 +9,19 @@ using Microsoft.Extensions.Logging;
 
 namespace Backend.Fx.Mediator.Feature;
 
-
 internal interface IApplicationMediator
 {
     ValueTask NotifyAsync<TNotification>(
         TNotification notification,
-        IIdentity? notifier,
-        INotificationErrorHandler? errorHandler,
+        IIdentity? notifier = null,
+        INotificationErrorHandler? errorHandler = null,
         CancellationToken cancellation = default) where TNotification : class;
 
     ValueTask<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
-        IIdentity? requestor,
+        IIdentity? requestor = null,
         CancellationToken cancellation = default) where TResponse : class;
 }
-
 
 internal class ApplicationMediator : IApplicationMediator
 {
@@ -32,7 +30,8 @@ internal class ApplicationMediator : IApplicationMediator
     private readonly HandlerRegistry _handlerRegistry;
     private readonly MediatorOptions _options;
 
-    internal ApplicationMediator(IBackendFxApplication application, HandlerRegistry handlerRegistry, MediatorOptions options)
+    internal ApplicationMediator(IBackendFxApplication application, HandlerRegistry handlerRegistry,
+        MediatorOptions options)
     {
         _application = application;
         _handlerRegistry = handlerRegistry;
@@ -41,13 +40,13 @@ internal class ApplicationMediator : IApplicationMediator
 
     public ValueTask NotifyAsync<TNotification>(
         TNotification notification,
-        IIdentity? notifier,
-        INotificationErrorHandler? errorHandler,
-        CancellationToken cancellation) where TNotification : class
+        IIdentity? notifier = null,
+        INotificationErrorHandler? errorHandler = null,
+        CancellationToken cancellation = default) where TNotification : class
     {
-        notifier = _options.DefaultNotifier;
+        notifier ??= _options.DefaultNotifier;
         errorHandler ??= _options.ErrorHandler;
-        
+
         var notificationHandlerTypes = _handlerRegistry.GetNotificationHandlerTypes<TNotification>();
         if (notificationHandlerTypes.Length == 0)
         {
@@ -87,7 +86,7 @@ internal class ApplicationMediator : IApplicationMediator
 
     public async ValueTask<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
-        IIdentity? requestor,
+        IIdentity? requestor = null,
         CancellationToken cancellation = default) where TResponse : class
     {
         var requestType = request.GetType();
@@ -161,7 +160,6 @@ internal class ApplicationMediator : IApplicationMediator
             {
                 throw tex.InnerException ?? tex;
             }
-
         }, requestor, cancellation);
 
         return response;
