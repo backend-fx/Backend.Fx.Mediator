@@ -8,7 +8,13 @@ public class ThreadSafeBoundedQueue<T> : IEnumerable<T>
     private readonly int _capacity;
     private readonly object _lock = new();
 
-    public ThreadSafeBoundedQueue(int capacity) => _capacity = capacity;
+    public ThreadSafeBoundedQueue(int capacity)
+    {
+        if (capacity < 1)
+            throw new ArgumentOutOfRangeException(nameof(capacity), capacity, "Capacity must be greater than 0.");
+
+        _capacity = capacity;
+    }
 
     public void Enqueue(T item)
     {
