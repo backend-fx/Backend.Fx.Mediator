@@ -2,6 +2,7 @@ using Backend.Fx.Execution;
 using Backend.Fx.Execution.DependencyInjection;
 using Backend.Fx.Execution.Pipeline;
 using Backend.Fx.Mediator.Feature.AutoNotification;
+using Backend.Fx.Mediator.Feature.Diagnostics;
 using Backend.Fx.Mediator.Feature.Outbox;
 using Backend.Fx.Mediator.Feature.Registry;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,8 @@ internal class MediatorModule : IModule
 
     public void Register(ICompositionRoot compositionRoot)
     {
+        compositionRoot.Register(ServiceDescriptor.Singleton<IFailedNotifications, FailedNotifications>());
+        
         // scan assemblies for request and notification handlers and register them
         HandlerRegistry = new HandlerRegistry(_application.Assemblies);
         foreach (var handlerType in HandlerRegistry)

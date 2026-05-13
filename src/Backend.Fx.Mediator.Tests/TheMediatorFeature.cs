@@ -8,6 +8,7 @@ using Backend.Fx.Execution;
 using Backend.Fx.Execution.SimpleInjector;
 using Backend.Fx.Logging;
 using Backend.Fx.Mediator.Feature;
+using Backend.Fx.Mediator.Feature.Diagnostics;
 using FakeItEasy;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
@@ -74,7 +75,7 @@ public class TheMediatorFeature : IAsyncLifetime
     }
 
     [Fact]
-    public async Task FailingNotificationIsHandled()
+    public async Task FailingNotificationIsHandledAndKept()
     {
         await Notify(new FailingNotification());
 
@@ -82,6 +83,10 @@ public class TheMediatorFeature : IAsyncLifetime
                 _errorHandler.HandleError(A<Type>._, A<FailingNotification>._, A<IIdentity>._,
                     A<DivideByZeroException>._))
             .MustHaveHappenedOnceExactly();
+
+        var failed = _application.CompositionRoot.ServiceProvider.GetRequiredService<IFailedNotifications>().FirstOrDefault();
+        failed.ShouldNotBeNull();
+        failed.Exception.ShouldBeOfType<DivideByZeroException>();
     }
 
     [Fact]
@@ -135,7 +140,7 @@ public class TheMediatorFeature : IAsyncLifetime
                 TheConcreteNotificationHandler3.Spy.HandleAsync(A<MyTestNotification3>._, A<CancellationToken>._))
             .MustHaveHappenedOnceExactly();
     }
-    
+
     [Fact]
     public async Task CallsAutoNotifyHandlers()
     {
@@ -175,10 +180,7 @@ public class TheMediatorFeature : IAsyncLifetime
 
     private Task Notify<TNot>(TNot notification) where TNot : class
     {
-        return _application.Invoker.InvokeAsync(
-            (sp, ct) =>
-            {
-                return sp.GetRequiredService<IMediator>().NotifyAsync(notification, ct).AsTask();
-            });
+        return _application.Invoker.InvokeAsync((sp, ct) =>
+            sp.GetRequiredService<IMediator>().NotifyAsync(notification, ct));
     }
 }
