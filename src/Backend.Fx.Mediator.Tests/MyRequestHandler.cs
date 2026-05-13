@@ -1,6 +1,5 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities.Serialization;
 
 namespace Backend.Fx.Mediator.Tests;
 
