@@ -44,7 +44,7 @@ public class WithAutoNotification : IMediator
     public async ValueTask<TResponse> RequestAsync<TResponse>(IRequest<TResponse> request, IIdentity requestor, CancellationToken cancellation = default) where TResponse : class
     {
         var response = await _mediator.RequestAsync(request, requestor, cancellation);
-        _ = _mediator.NotifyAsync(response, cancellation);
+        _ = _mediator.NotifyAsync(response, requestor, cancellation);
         return response;
     }
 }

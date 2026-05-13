@@ -29,7 +29,7 @@ public class MediatorFeature : IFeature
         MetaData = mediatorModule.HandlerRegistry.GetMetaData();
     }
 
-    public HandlerMetaData[] MetaData { get; set; } = [];
+    public HandlerMetaData[] MetaData { get; private set; } = [];
 
     public IEnumerable<Assembly> Assemblies { get; } = [];
 }

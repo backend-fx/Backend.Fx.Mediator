@@ -178,8 +178,7 @@ public class TheMediatorFeature : IAsyncLifetime
         return _application.Invoker.InvokeAsync(
             (sp, ct) =>
             {
-                _ = sp.GetRequiredService<IMediator>().NotifyAsync(notification, ct);
-                return Task.CompletedTask;
+                return sp.GetRequiredService<IMediator>().NotifyAsync(notification, ct).AsTask();
             });
     }
 }
