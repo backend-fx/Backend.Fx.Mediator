@@ -22,14 +22,14 @@ public class MediatorFeature : IFeature
         configure?.Invoke(_options);
     }
 
-    public IReadOnlyList<HandlerMetaData> HandlerMetaData { get; private set; } = [];
-
     public void Enable(IBackendFxApplication application)
     {
         var mediatorModule = new MediatorModule(application, _options);
         application.CompositionRoot.RegisterModules(mediatorModule);
-        HandlerMetaData = mediatorModule.Handlers.ToArray();
+        MetaData = mediatorModule.HandlerRegistry.GetMetaData();
     }
+
+    public HandlerMetaData[] MetaData { get; private set; } = [];
 
     public IEnumerable<Assembly> Assemblies { get; } = [];
 }

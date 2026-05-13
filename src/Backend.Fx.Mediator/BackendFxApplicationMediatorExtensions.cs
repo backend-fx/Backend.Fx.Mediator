@@ -9,68 +9,39 @@ namespace Backend.Fx.Mediator;
 public static class BackendFxApplicationMediatorExtensions
 {
     /// <summary>
-    /// Notifies all subscribers immediately.
-    /// </summary>
-    public static ValueTask NotifyAsync<TNotification>(this IBackendFxApplication application, TNotification notification, CancellationToken cancellation = default) 
-        where TNotification : class
-        => application.GetMediator().NotifyAsync(notification, cancellation);
-    
-    /// <summary>
-    /// Notifies all subscribers immediately.
-    /// </summary>
-    public static ValueTask NotifyAsync<TNotification>(
-        this IBackendFxApplication application,
-        TNotification notification, 
-        IIdentity notifier,
-        CancellationToken cancellation = default)
-        where TNotification : class
-        => application.GetMediator().NotifyAsync(notification, notifier, cancellation);
-    
-    /// <summary>
-    /// Notifies all subscribers immediately.
-    /// </summary>
-    public static ValueTask NotifyAsync<TNotification>(
-        this IBackendFxApplication application,
-        TNotification notification, 
-        INotificationErrorHandler errorHandler,
-        CancellationToken cancellation = default)
-        where TNotification : class
-        => application.GetMediator().NotifyAsync(notification, errorHandler, cancellation);
-    
-    /// <summary>
-    /// Notifies all subscribers immediately.
-    /// </summary>
-    public static ValueTask NotifyAsync<TNotification>(
-        this IBackendFxApplication application,
-        TNotification notification, 
-        IIdentity notifier,
-        INotificationErrorHandler errorHandler,
-        CancellationToken cancellation = default)
-        where TNotification : class
-        => application.GetMediator().NotifyAsync(notification, notifier, errorHandler, cancellation);
-    
-    /// <summary>
     /// Executes a request immediately.
     /// </summary>
-    public static ValueTask<TResponse> RequestAsync<TResponse>(
+    public static async ValueTask<TResponse> RequestAsync<TResponse>(
         this IBackendFxApplication application,
         IRequest<TResponse> request,
         CancellationToken cancellation = default) where TResponse : class
-        => application.GetMediator().RequestAsync(request, cancellation);
+    {
+        TResponse response = null!;
+        
+        await application.Invoker.InvokeAsync(
+            async (sp, ct) =>
+                response = await sp.GetRequiredService<IMediator>().RequestAsync(request, ct),
+            null, cancellation);
+        
+        return response;
+    }
 
     /// <summary>
     /// Executes a request immediately.
     /// </summary>
-    public static ValueTask<TResponse> RequestAsync<TResponse>(
+    public static async ValueTask<TResponse> RequestAsync<TResponse>(
         this IBackendFxApplication application,
         IRequest<TResponse> request,
         IIdentity requestor,
         CancellationToken cancellation = default) where TResponse : class
-        => application.GetMediator().RequestAsync(request, requestor, cancellation);
-    
-    private static IRootMediator GetMediator(this IBackendFxApplication application)
-        => application
-            .CompositionRoot
-            .ServiceProvider
-            .GetRequiredService<IRootMediator>();
+    {
+        TResponse response = null!;
+        
+        await application.Invoker.InvokeAsync(
+            async (sp, ct) =>
+                response = await sp.GetRequiredService<IMediator>().RequestAsync(request, requestor, ct),
+            null, cancellation);
+        
+        return response;
+    }
 }
