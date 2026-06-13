@@ -60,7 +60,7 @@ public class TheMediatorFeature : IAsyncLifetime
     [Fact]
     public async Task CallsAllNotificationHandlers()
     {
-        await Notify(new MyTestNotification1());
+        await _application.NotifyAsync(new MyTestNotification1());
 
         A.CallTo(() =>
                 _testNotificationSpy.NotificationHandler.HandleAsync(A<MyTestNotification1>._, A<CancellationToken>._))
@@ -77,7 +77,7 @@ public class TheMediatorFeature : IAsyncLifetime
     [Fact]
     public async Task FailingNotificationIsHandledAndKept()
     {
-        await Notify(new FailingNotification());
+        await _application.NotifyAsync(new FailingNotification());
 
         A.CallTo(() =>
                 _errorHandler.HandleError(A<Type>._, A<FailingNotification>._, A<IIdentity>._,
@@ -134,7 +134,7 @@ public class TheMediatorFeature : IAsyncLifetime
     [Fact]
     public async Task CallsInheritedHandlers()
     {
-        await Notify(new MyTestNotification3());
+        await _application.NotifyAsync(new MyTestNotification3());
 
         A.CallTo(() =>
                 TheConcreteNotificationHandler3.Spy.HandleAsync(A<MyTestNotification3>._, A<CancellationToken>._))
@@ -176,11 +176,5 @@ public class TheMediatorFeature : IAsyncLifetime
     {
         _application.Dispose();
         return Task.CompletedTask;
-    }
-
-    private Task Notify<TNot>(TNot notification) where TNot : class
-    {
-        return _application.Invoker.InvokeAsync((sp, ct) =>
-            sp.GetRequiredService<IMediator>().NotifyAsync(notification, ct));
     }
 }
