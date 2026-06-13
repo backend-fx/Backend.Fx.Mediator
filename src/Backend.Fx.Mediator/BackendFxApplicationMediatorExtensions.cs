@@ -9,6 +9,29 @@ namespace Backend.Fx.Mediator;
 public static class BackendFxApplicationMediatorExtensions
 {
     /// <summary>
+    /// Raises a notification immediately in a <b>separate invocation</b>. This is bypassing any possibly configured outbox!
+    /// </summary>
+    public static async ValueTask NotifyAsync<TNotification>(
+        this IBackendFxApplication application,
+        TNotification notification) where TNotification : class
+    {
+        await application.Invoker.InvokeAsync(
+            (sp, ct) => sp.GetRequiredService<IMediator>().NotifyAsync(notification, ct));
+    }
+    
+    /// <summary>
+    /// Raises a notification immediately in a <b>separate invocation</b>. This is bypassing any possibly configured outbox!
+    /// </summary>
+    public static async ValueTask NotifyAsync<TNotification>(
+        this IBackendFxApplication application,
+        TNotification notification,
+        IIdentity notifier) where TNotification : class
+    {
+        await application.Invoker.InvokeAsync(
+            (sp, ct) => sp.GetRequiredService<IMediator>().NotifyAsync(notification, notifier, ct));
+    }
+    
+    /// <summary>
     /// Executes a request immediately.
     /// </summary>
     public static async ValueTask<TResponse> RequestAsync<TResponse>(
