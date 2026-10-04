@@ -186,6 +186,17 @@ public class TheMediatorFeature : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CallsTheSingleArgRequestHandler()
+    {
+        var response = await _application.RequestAsync(
+            new MySuccessRequest(),
+            cancellation: TestContext.Current.CancellationToken);
+
+        response.ShouldNotBeNull();
+        MySuccessRequestHandler.WasCalled.ShouldBeTrue();
+    }
+
+    [Fact]
     public void HasMetaData()
     {
         var handlers = _application.GetFeature<MediatorFeature>()!.MetaData;

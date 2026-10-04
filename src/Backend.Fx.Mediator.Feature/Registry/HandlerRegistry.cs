@@ -51,6 +51,25 @@ internal class HandlerRegistry : IEnumerable<Type>
             handlers.Add((key, requestHandlerServiceDescriptor.ServiceType));
         }
 
+        var successRequestHandlerServiceDescriptors = assemblies
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => !type.IsInterface && type.IsClass && !type.IsAbstract)
+            .Where(type => type.IsImplementationOfOpenGenericInterface(typeof(IRequestHandler<>)))
+            .Where(type => !type.IsImplementationOfOpenGenericInterface(typeof(IRequestHandler<,>)))
+            .Select(type => new ServiceDescriptor(type, type, ServiceLifetime.Scoped));
+
+        foreach (var successRequestHandlerServiceDescriptor in successRequestHandlerServiceDescriptors)
+        {
+            var requestType = successRequestHandlerServiceDescriptor.ImplementationType!.GetTypeInfo()
+                .ImplementedInterfaces
+                .Single(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequestHandler<>))
+                .GenericTypeArguments
+                .First();
+
+            var key = new HandlerKey(requestType, typeof(SuccessResponse));
+            handlers.Add((key, successRequestHandlerServiceDescriptor.ServiceType));
+        }
+
         _handlerTypeLookup = handlers.ToLookup(tuple => tuple.handlerKey, tuple => tuple.handlerType);
     }
     

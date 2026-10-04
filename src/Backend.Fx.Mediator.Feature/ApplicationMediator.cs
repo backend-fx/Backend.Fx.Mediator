@@ -112,8 +112,18 @@ internal class ApplicationMediator : IApplicationMediator
         var expectedGenericInterfaceType = typeof(IRequestHandler<,>).MakeGenericType(requestType, responseType);
         if (!expectedGenericInterfaceType.IsAssignableFrom(requestHandlerType))
         {
-            throw new InvalidOperationException(
-                $"Handler {requestHandlerType.Name} is not implementing IRequestHandler<{requestType}, {responseType.Name}>");
+            // handlers of requests responding with a SuccessResponse may implement the single arg interface
+            var expectedSuccessInterfaceType = responseType == typeof(SuccessResponse)
+                ? typeof(IRequestHandler<>).MakeGenericType(requestType)
+                : null;
+
+            if (expectedSuccessInterfaceType?.IsAssignableFrom(requestHandlerType) != true)
+            {
+                throw new InvalidOperationException(
+                    $"Handler {requestHandlerType.Name} is not implementing IRequestHandler<{requestType}, {responseType.Name}>");
+            }
+
+            expectedGenericInterfaceType = expectedSuccessInterfaceType;
         }
 
         TResponse response = null!;
