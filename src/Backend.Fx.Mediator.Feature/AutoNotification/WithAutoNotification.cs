@@ -37,14 +37,14 @@ internal class WithAutoNotification : IMediator
     public async Task<TResponse> RequestAsync<TResponse>(IRequest<TResponse> request, CancellationToken cancellation = default) where TResponse : class
     {
         var response = await _mediator.RequestAsync(request, cancellation);
-        _ = _mediator.NotifyAsync(response, cancellation);
+        await _mediator.NotifyAsync(response, cancellation);
         return response;
     }
 
     public async Task<TResponse> RequestAsync<TResponse>(IRequest<TResponse> request, IIdentity requestor, CancellationToken cancellation = default) where TResponse : class
     {
         var response = await _mediator.RequestAsync(request, requestor, cancellation);
-        _ = _mediator.NotifyAsync(response, requestor, cancellation);
+        await _mediator.NotifyAsync(response, requestor, cancellation);
         return response;
     }
 }
