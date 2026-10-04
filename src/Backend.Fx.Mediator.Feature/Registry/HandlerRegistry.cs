@@ -67,9 +67,17 @@ internal class HandlerRegistry : IEnumerable<Type>
     {
         var key = new HandlerKey(requestType, typeof(TResponse));
         var handlerTypes = _handlerTypeLookup[key].ToArray();
-        return handlerTypes.SingleOrDefault()
-               ?? throw new InvalidOperationException(
-                   $"No handler found for request type {requestType.Name} with response type {typeof(TResponse).Name}");
+
+        return handlerTypes.Length switch
+        {
+            1 => handlerTypes[0],
+            0 => throw new InvalidOperationException(
+                $"No handler found for request type {requestType.Name} with response type {typeof(TResponse).Name}"),
+            _ => throw new InvalidOperationException(
+                $"Multiple handlers found for request type {requestType.Name} with response type "
+                + $"{typeof(TResponse).Name}: {string.Join(", ", handlerTypes.Select(t => t.Name))}. "
+                + "A request must be handled by exactly one handler.")
+        };
     }
 
     public Type[] GetNotificationHandlerTypes<TNotification>() where TNotification : class
