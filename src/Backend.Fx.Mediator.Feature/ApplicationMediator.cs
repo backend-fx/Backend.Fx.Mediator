@@ -151,7 +151,7 @@ internal class ApplicationMediator : IApplicationMediator
                         $"Handler {requestHandlerType.Name} does not have an InitializeAsync method");
                 }
 
-                await (ValueTask)(methodInfo.Invoke(handler, [request, cancellation]) ?? ValueTask.CompletedTask);
+                await (ValueTask)(methodInfo.Invoke(handler, [request, ct]) ?? ValueTask.CompletedTask);
             }
             
 
@@ -179,7 +179,7 @@ internal class ApplicationMediator : IApplicationMediator
                 }
 
                 var isAuthorized =
-                    await (ValueTask<bool>)(methodInfo.Invoke(handler, [requestor, request, cancellation])
+                    await (ValueTask<bool>)(methodInfo.Invoke(handler, [requestor, request, ct])
                                             ?? ValueTask.FromResult(false));
                 if (isAuthorized != true)
                 {
@@ -201,7 +201,7 @@ internal class ApplicationMediator : IApplicationMediator
 
             try
             {
-                var task = (ValueTask<TResponse>)handleAsyncMethod.Invoke(handler, [request, cancellation])!;
+                var task = (ValueTask<TResponse>)handleAsyncMethod.Invoke(handler, [request, ct])!;
                 response = await task.ConfigureAwait(false);
             }
             catch (TargetInvocationException tex)
