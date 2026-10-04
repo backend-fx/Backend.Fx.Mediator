@@ -80,11 +80,15 @@ internal class HandlerRegistry : IEnumerable<Type>
         };
     }
 
-    public Type[] GetNotificationHandlerTypes<TNotification>() where TNotification : class
+    public (Type notificationType, Type handlerType)[] GetNotificationHandlers(params Type[] notificationTypes)
     {
-        var key = HandlerKey.For<TNotification>();
-        var handlerTypes = _handlerTypeLookup[key].ToArray();
-        return handlerTypes;
+        // a notification may be dispatched by its runtime type as well as by the statically known type it was
+        // published as, but every handler must be notified only once, preferring the most specific type
+        return notificationTypes
+            .Distinct()
+            .SelectMany(nt => _handlerTypeLookup[new HandlerKey(nt)].Select(ht => (notificationType: nt, handlerType: ht)))
+            .DistinctBy(tuple => tuple.handlerType)
+            .ToArray();
     }
 
     public IEnumerator<Type> GetEnumerator()

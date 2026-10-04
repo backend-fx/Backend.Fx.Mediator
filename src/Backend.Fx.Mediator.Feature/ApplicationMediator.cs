@@ -52,21 +52,31 @@ internal class ApplicationMediator : IApplicationMediator
         notifier ??= _options.DefaultNotifier;
         errorHandler ??= _options.ErrorHandler;
 
-        var notificationHandlerTypes = _handlerRegistry.GetNotificationHandlerTypes<TNotification>();
-        if (notificationHandlerTypes.Length == 0)
+        var notificationHandlers = _handlerRegistry.GetNotificationHandlers(
+            notification.GetType(),
+            typeof(TNotification));
+
+        if (notificationHandlers.Length == 0)
         {
-            _logger.LogInformation("No handler types for {@NotificationType} found.", typeof(TNotification));
+            _logger.LogInformation("No handler types for {@NotificationType} found.", notification.GetType());
             return Task.CompletedTask;
         }
 
-        var tasks = notificationHandlerTypes
-            .Select(nht => NotifyHandlerAndHandleError(notification, nht, notifier, errorHandler, cancellation));
+        var tasks = notificationHandlers
+            .Select(nh => NotifyHandlerAndHandleError(
+                notification,
+                nh.notificationType,
+                nh.handlerType,
+                notifier,
+                errorHandler,
+                cancellation));
 
         return Task.WhenAll(tasks);
     }
 
     private async Task NotifyHandlerAndHandleError<TNotification>(
         TNotification notification,
+        Type notificationType,
         Type handlerType,
         IIdentity notifier,
         INotificationErrorHandler errorHandler,
@@ -84,7 +94,22 @@ internal class ApplicationMediator : IApplicationMediator
                     await initializableHandler.InitializeAsync(ct).ConfigureAwait(false);
                 }
 
-                await ((INotificationHandler<TNotification>)handler).HandleAsync(notification, ct);
+                // the notification might be handled by its runtime type, which is not necessarily TNotification,
+                // hence the invocation is dispatched via the respective closed notification handler interface
+                var handleAsyncMethod = typeof(INotificationHandler<>)
+                    .MakeGenericType(notificationType)
+                    .GetMethod(
+                        nameof(INotificationHandler<>.HandleAsync),
+                        BindingFlags.Instance | BindingFlags.Public)!;
+
+                try
+                {
+                    await (ValueTask)handleAsyncMethod.Invoke(handler, [notification, ct])!;
+                }
+                catch (TargetInvocationException tex)
+                {
+                    throw tex.InnerException ?? tex;
+                }
             }, notifier, cancellation);
         }
         catch (Exception ex)

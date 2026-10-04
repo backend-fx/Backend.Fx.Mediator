@@ -242,6 +242,18 @@ public class TheMediatorFeature : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CallsHandlersMatchingTheRuntimeNotificationType()
+    {
+        object notification = new MyTestNotification1();
+
+        await _application.NotifyAsync(notification);
+
+        A.CallTo(() =>
+                _testNotificationSpy.NotificationHandler.HandleAsync(A<MyTestNotification1>._, A<CancellationToken>._))
+            .MustHaveHappenedTwiceExactly();
+    }
+
+    [Fact]
     public void HasMetaData()
     {
         var handlers = _application.GetFeature<MediatorFeature>()!.MetaData;
