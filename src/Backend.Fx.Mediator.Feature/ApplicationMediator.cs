@@ -187,7 +187,12 @@ internal class ApplicationMediator : IApplicationMediator
                 }
             }
 
-            var handleAsyncMethod = requestHandlerType.GetMethod("HandleAsync");
+            // resolving the method on the interface (and not on the implementation) avoids ambiguity when a
+            // handler implements multiple handler interfaces, and also supports explicit implementations
+            var handleAsyncMethod = expectedGenericInterfaceType.GetMethod(
+                nameof(IRequestHandler<,>.HandleAsync),
+                BindingFlags.Instance | BindingFlags.Public);
+
             if (handleAsyncMethod == null)
             {
                 throw new InvalidOperationException(

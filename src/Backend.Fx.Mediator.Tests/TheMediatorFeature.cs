@@ -212,6 +212,20 @@ public class TheMediatorFeature : IAsyncLifetime
     }
 
     [Fact]
+    public async Task CallsHandlersThatHandleRequestsAndNotifications()
+    {
+        var request = new MyMixedRequest();
+
+        var response = await _application.RequestAsync(
+            request,
+            cancellation: TestContext.Current.CancellationToken);
+
+        response.ShouldNotBeNull();
+        A.CallTo(() => MyMixedHandler.RequestSpy.HandleAsync(request, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
     public void HasMetaData()
     {
         var handlers = _application.GetFeature<MediatorFeature>()!.MetaData;
