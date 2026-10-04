@@ -1,7 +1,5 @@
 using System.Collections;
 using System.Reflection;
-using Backend.Fx.Util;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Backend.Fx.Mediator.Feature.Registry;
 
@@ -11,63 +9,55 @@ internal class HandlerRegistry : IEnumerable<Type>
 
     public HandlerRegistry(IEnumerable<Assembly> assemblies)
     {
-        assemblies = assemblies as Assembly[] ?? assemblies.ToArray();
-        
         List<(HandlerKey handlerKey, Type handlerType)> handlers = [];
-        
-        var notificationHandlerServiceDescriptors = assemblies
+
+        var candidateTypes = assemblies
             .SelectMany(assembly => assembly.GetTypes())
-            .Where(type => !type.IsInterface && type.IsClass && !type.IsAbstract)
-            .Where(type => type.IsImplementationOfOpenGenericInterface(typeof(INotificationHandler<>)))
-            .Select(type => new ServiceDescriptor(type, type, ServiceLifetime.Scoped));
+            .Where(type => !type.IsInterface && type.IsClass && !type.IsAbstract);
 
-        foreach (var notificationHandlerServiceDescriptor in notificationHandlerServiceDescriptors)
+        foreach (var candidateType in candidateTypes)
         {
-            var notificationType = notificationHandlerServiceDescriptor.ImplementationType!.GetTypeInfo()
+            var implementedInterfaces = candidateType.GetTypeInfo()
                 .ImplementedInterfaces
-                .Single(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(INotificationHandler<>))
-                .GenericTypeArguments
-                .First();
-
-            var key = new HandlerKey(notificationType);
-            handlers.Add((key, notificationHandlerServiceDescriptor.ServiceType));
-        }
-        
-        var requestHandlerServiceDescriptors = assemblies
-            .SelectMany(assembly => assembly.GetTypes())
-            .Where(type => !type.IsInterface && type.IsClass && !type.IsAbstract)
-            .Where(type => type.IsImplementationOfOpenGenericInterface(typeof(IRequestHandler<,>)))
-            .Select(type => new ServiceDescriptor(type, type, ServiceLifetime.Scoped));
-
-        foreach (var requestHandlerServiceDescriptor in requestHandlerServiceDescriptors)
-        {
-            Type[] genericTypeArgs = requestHandlerServiceDescriptor.ImplementationType!.GetTypeInfo()
-                .ImplementedInterfaces
-                .Single(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequestHandler<,>))
-                .GenericTypeArguments
+                .Where(i => i.IsGenericType)
                 .ToArray();
 
-            var key = new HandlerKey(genericTypeArgs[0], genericTypeArgs[1]);
-            handlers.Add((key, requestHandlerServiceDescriptor.ServiceType));
-        }
+            foreach (var notificationInterface in implementedInterfaces
+                         .Where(i => i.GetGenericTypeDefinition() == typeof(INotificationHandler<>)))
+            {
+                var key = new HandlerKey(notificationInterface.GenericTypeArguments[0]);
+                handlers.Add((key, candidateType));
+            }
 
-        var successRequestHandlerServiceDescriptors = assemblies
-            .SelectMany(assembly => assembly.GetTypes())
-            .Where(type => !type.IsInterface && type.IsClass && !type.IsAbstract)
-            .Where(type => type.IsImplementationOfOpenGenericInterface(typeof(IRequestHandler<>)))
-            .Where(type => !type.IsImplementationOfOpenGenericInterface(typeof(IRequestHandler<,>)))
-            .Select(type => new ServiceDescriptor(type, type, ServiceLifetime.Scoped));
+            var requestInterfaces = implementedInterfaces
+                .Where(i => i.GetGenericTypeDefinition() == typeof(IRequestHandler<,>))
+                .ToArray();
 
-        foreach (var successRequestHandlerServiceDescriptor in successRequestHandlerServiceDescriptors)
-        {
-            var requestType = successRequestHandlerServiceDescriptor.ImplementationType!.GetTypeInfo()
-                .ImplementedInterfaces
-                .Single(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IRequestHandler<>))
-                .GenericTypeArguments
-                .First();
+            foreach (var requestInterface in requestInterfaces)
+            {
+                var key = new HandlerKey(
+                    requestInterface.GenericTypeArguments[0],
+                    requestInterface.GenericTypeArguments[1]);
+                handlers.Add((key, candidateType));
+            }
 
-            var key = new HandlerKey(requestType, typeof(SuccessResponse));
-            handlers.Add((key, successRequestHandlerServiceDescriptor.ServiceType));
+            // handlers of requests responding with a SuccessResponse may implement the single arg interface
+            foreach (var successRequestInterface in implementedInterfaces
+                         .Where(i => i.GetGenericTypeDefinition() == typeof(IRequestHandler<>)))
+            {
+                var requestType = successRequestInterface.GenericTypeArguments[0];
+                var isAlsoImplementingTheTwoArgInterface = requestInterfaces.Any(
+                    ri => ri.GenericTypeArguments[0] == requestType
+                          && ri.GenericTypeArguments[1] == typeof(SuccessResponse));
+
+                if (isAlsoImplementingTheTwoArgInterface)
+                {
+                    continue;
+                }
+
+                var key = new HandlerKey(requestType, typeof(SuccessResponse));
+                handlers.Add((key, candidateType));
+            }
         }
 
         _handlerTypeLookup = handlers.ToLookup(tuple => tuple.handlerKey, tuple => tuple.handlerType);
@@ -91,12 +81,13 @@ internal class HandlerRegistry : IEnumerable<Type>
 
     public IEnumerator<Type> GetEnumerator()
     {
-        return _handlerTypeLookup.SelectMany(grouping => grouping).GetEnumerator();
+        // a handler type might be registered for multiple keys, but must be enumerated (and registered) only once
+        return _handlerTypeLookup.SelectMany(grouping => grouping).Distinct().GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        return _handlerTypeLookup.SelectMany(grouping => grouping).GetEnumerator();
+        return GetEnumerator();
     }
 
     public HandlerMetaData[] GetMetaData()
