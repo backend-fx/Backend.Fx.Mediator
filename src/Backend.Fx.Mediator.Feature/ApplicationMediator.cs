@@ -126,6 +126,23 @@ internal class ApplicationMediator : IApplicationMediator
             {
                 await initializableHandler.InitializeAsync(ct).ConfigureAwait(false);
             }
+            
+            var genericInitializableHandlerType = typeof(IInitializableHandler<>).MakeGenericType(requestType);
+            if (genericInitializableHandlerType.IsInstanceOfType(handler))
+            {
+                var methodInfo = genericInitializableHandlerType.GetMethod(
+                    nameof(IInitializableHandler<>.InitializeAsync),
+                    BindingFlags.Instance | BindingFlags.Public);
+
+                if (methodInfo == null)
+                {
+                    throw new InvalidOperationException(
+                        $"Handler {requestHandlerType.Name} does not have an InitializeAsync method");
+                }
+
+                await (ValueTask)(methodInfo.Invoke(handler, [request, cancellation]) ?? ValueTask.CompletedTask);
+            }
+            
 
             // ReSharper disable once SuspiciousTypeConversion.Global
             if (handler is IAuthorizedHandler authorizedHandler)
@@ -141,7 +158,7 @@ internal class ApplicationMediator : IApplicationMediator
             if (genericAuthorizedHandlerType.IsInstanceOfType(handler))
             {
                 var methodInfo = genericAuthorizedHandlerType.GetMethod(
-                    "IsAuthorizedAsync",
+                    nameof(IAuthorizedHandler<>.IsAuthorizedAsync),
                     BindingFlags.Instance | BindingFlags.Public);
 
                 if (methodInfo == null)
