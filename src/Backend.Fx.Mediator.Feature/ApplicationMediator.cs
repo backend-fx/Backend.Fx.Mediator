@@ -89,13 +89,27 @@ internal class ApplicationMediator : IApplicationMediator
         }
         catch (Exception ex)
         {
-            errorHandler.HandleError(handlerType, notification, notifier, ex);
             _application.CompositionRoot.ServiceProvider.GetRequiredService<IFailedNotifications>().Add(
                 new FailedNotification(
                     SystemClock.Instance.GetCurrentInstant(), 
                     notification,
                     notifier,
                     ex));
+
+            try
+            {
+                errorHandler.HandleError(handlerType, notification, notifier, ex);
+            }
+            catch (Exception errorHandlerException)
+            {
+                _logger.LogError(
+                    errorHandlerException,
+                    "The notification error handler {@ErrorHandlerType} failed while handling an exception of "
+                    + "{@HandlerType} notified with {@NotificationType}.",
+                    errorHandler.GetType(),
+                    handlerType,
+                    typeof(TNotification));
+            }
         }
     }
 

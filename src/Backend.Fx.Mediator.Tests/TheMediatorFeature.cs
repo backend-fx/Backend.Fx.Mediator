@@ -226,6 +226,22 @@ public class TheMediatorFeature : IAsyncLifetime
     }
 
     [Fact]
+    public async Task FailingErrorHandlerDoesNotPreventRecordingTheFailedNotification()
+    {
+        A.CallTo(() =>
+                _errorHandler.HandleError(A<Type>._, A<FailingNotification>._, A<IIdentity>._, A<Exception>._))
+            .Throws<InvalidOperationException>();
+
+        await _application.NotifyAsync(new FailingNotification());
+
+        var failed = _application.CompositionRoot.ServiceProvider
+            .GetRequiredService<IFailedNotifications>()
+            .FirstOrDefault();
+        failed.ShouldNotBeNull();
+        failed.Exception.ShouldBeOfType<DivideByZeroException>();
+    }
+
+    [Fact]
     public void HasMetaData()
     {
         var handlers = _application.GetFeature<MediatorFeature>()!.MetaData;
