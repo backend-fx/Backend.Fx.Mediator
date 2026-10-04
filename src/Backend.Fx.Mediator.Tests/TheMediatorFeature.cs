@@ -165,6 +165,27 @@ public class TheMediatorFeature : IAsyncLifetime
     }
 
     [Fact]
+    public async Task UsesTheDefaultRequestorWhenNoRequestorIsGiven()
+    {
+        var response = await _application.RequestAsync(
+            new MyIdentityProbeRequest(),
+            cancellation: TestContext.Current.CancellationToken);
+
+        response.IdentityName.ShouldBe("TestUser");
+    }
+
+    [Fact]
+    public async Task UsesTheGivenRequestor()
+    {
+        var response = await _application.RequestAsync(
+            new MyIdentityProbeRequest(),
+            new GenericIdentity("SomebodyElse"),
+            TestContext.Current.CancellationToken);
+
+        response.IdentityName.ShouldBe("SomebodyElse");
+    }
+
+    [Fact]
     public void HasMetaData()
     {
         var handlers = _application.GetFeature<MediatorFeature>()!.MetaData;

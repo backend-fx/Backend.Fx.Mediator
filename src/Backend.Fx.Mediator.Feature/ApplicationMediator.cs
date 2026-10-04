@@ -104,6 +104,8 @@ internal class ApplicationMediator : IApplicationMediator
         IIdentity? requestor = null,
         CancellationToken cancellation = default) where TResponse : class
     {
+        requestor ??= _options.DefaultRequestor;
+
         var requestType = request.GetType();
         var responseType = typeof(TResponse);
         var requestHandlerType = _handlerRegistry.GetRequestHandlerType<TResponse>(requestType);
@@ -118,7 +120,6 @@ internal class ApplicationMediator : IApplicationMediator
 
         await _application.Invoker.InvokeAsync(async (sp, ct) =>
         {
-            requestor ??= _options.DefaultRequestor;
             var handler = sp.GetRequiredService(requestHandlerType);
 
             // ReSharper disable once SuspiciousTypeConversion.Global
