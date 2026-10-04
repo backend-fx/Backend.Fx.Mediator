@@ -254,6 +254,17 @@ public class TheMediatorFeature : IAsyncLifetime
     }
 
     [Fact]
+    public async Task DoesNotSendOutboxedNotificationsOfACancelledOperation()
+    {
+        await Assert.ThrowsAsync<DivideByZeroException>(async () =>
+            await _application.RequestAsync(
+                new MyCancelledRequest(),
+                cancellation: TestContext.Current.CancellationToken));
+
+        MyCancelledNotificationHandler.WasCalled.ShouldBeFalse();
+    }
+
+    [Fact]
     public void HasMetaData()
     {
         var handlers = _application.GetFeature<MediatorFeature>()!.MetaData;

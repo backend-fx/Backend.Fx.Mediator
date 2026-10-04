@@ -28,6 +28,8 @@ internal class FlushMediatorOutboxOperation : IOperation
 
     public Task CancelAsync(CancellationToken cancellation = default)
     {
+        // notifications of a cancelled operation must never be sent
+        _outbox.Discard();
         return _operation.CancelAsync(cancellation);
     }
 
