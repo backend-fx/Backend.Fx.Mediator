@@ -15,9 +15,9 @@ public record HandlerMetaData
         HandlerType = handlerType;
     }
 
-    public Type ResponseType { get; set; }
+    public Type ResponseType { get; init; }
 
-    public Type RequestType { get; set; }
+    public Type RequestType { get; init; }
 
     public Type HandlerType { get; init; }
 

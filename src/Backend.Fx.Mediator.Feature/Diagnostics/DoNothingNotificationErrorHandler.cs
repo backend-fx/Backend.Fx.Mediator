@@ -1,6 +1,6 @@
 using System.Security.Principal;
 
-namespace Backend.Fx.Mediator.Feature;
+namespace Backend.Fx.Mediator.Feature.Diagnostics;
 
 internal class DoNothingNotificationErrorHandler : INotificationErrorHandler
 {

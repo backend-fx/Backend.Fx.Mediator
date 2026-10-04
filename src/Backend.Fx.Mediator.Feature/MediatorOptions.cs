@@ -1,5 +1,6 @@
 using System.Security.Principal;
 using Backend.Fx.Execution.Pipeline;
+using Backend.Fx.Mediator.Feature.Diagnostics;
 
 namespace Backend.Fx.Mediator.Feature;
 
