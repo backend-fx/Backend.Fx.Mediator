@@ -52,21 +52,31 @@ internal class ApplicationMediator : IApplicationMediator
         notifier ??= _options.DefaultNotifier;
         errorHandler ??= _options.ErrorHandler;
 
-        var notificationHandlerTypes = _handlerRegistry.GetNotificationHandlerTypes<TNotification>();
-        if (notificationHandlerTypes.Length == 0)
+        var notificationHandlers = _handlerRegistry.GetNotificationHandlers(
+            notification.GetType(),
+            typeof(TNotification));
+
+        if (notificationHandlers.Length == 0)
         {
-            _logger.LogInformation("No handler types for {@NotificationType} found.", typeof(TNotification));
+            _logger.LogInformation("No handler types for {@NotificationType} found.", notification.GetType());
             return Task.CompletedTask;
         }
 
-        var tasks = notificationHandlerTypes
-            .Select(nht => NotifyHandlerAndHandleError(notification, nht, notifier, errorHandler, cancellation));
+        var tasks = notificationHandlers
+            .Select(nh => NotifyHandlerAndHandleError(
+                notification,
+                nh.notificationType,
+                nh.handlerType,
+                notifier,
+                errorHandler,
+                cancellation));
 
         return Task.WhenAll(tasks);
     }
 
     private async Task NotifyHandlerAndHandleError<TNotification>(
         TNotification notification,
+        Type notificationType,
         Type handlerType,
         IIdentity notifier,
         INotificationErrorHandler errorHandler,
@@ -84,18 +94,47 @@ internal class ApplicationMediator : IApplicationMediator
                     await initializableHandler.InitializeAsync(ct).ConfigureAwait(false);
                 }
 
-                await ((INotificationHandler<TNotification>)handler).HandleAsync(notification, ct);
+                // the notification might be handled by its runtime type, which is not necessarily TNotification,
+                // hence the invocation is dispatched via the respective closed notification handler interface
+                var handleAsyncMethod = typeof(INotificationHandler<>)
+                    .MakeGenericType(notificationType)
+                    .GetMethod(
+                        nameof(INotificationHandler<>.HandleAsync),
+                        BindingFlags.Instance | BindingFlags.Public)!;
+
+                try
+                {
+                    await (ValueTask)handleAsyncMethod.Invoke(handler, [notification, ct])!;
+                }
+                catch (TargetInvocationException tex)
+                {
+                    throw tex.InnerException ?? tex;
+                }
             }, notifier, cancellation);
         }
         catch (Exception ex)
         {
-            errorHandler.HandleError(handlerType, notification, notifier, ex);
             _application.CompositionRoot.ServiceProvider.GetRequiredService<IFailedNotifications>().Add(
                 new FailedNotification(
                     SystemClock.Instance.GetCurrentInstant(), 
                     notification,
                     notifier,
                     ex));
+
+            try
+            {
+                errorHandler.HandleError(handlerType, notification, notifier, ex);
+            }
+            catch (Exception errorHandlerException)
+            {
+                _logger.LogError(
+                    errorHandlerException,
+                    "The notification error handler {@ErrorHandlerType} failed while handling an exception of "
+                    + "{@HandlerType} notified with {@NotificationType}.",
+                    errorHandler.GetType(),
+                    handlerType,
+                    typeof(TNotification));
+            }
         }
     }
 
@@ -104,21 +143,32 @@ internal class ApplicationMediator : IApplicationMediator
         IIdentity? requestor = null,
         CancellationToken cancellation = default) where TResponse : class
     {
+        requestor ??= _options.DefaultRequestor;
+
         var requestType = request.GetType();
         var responseType = typeof(TResponse);
         var requestHandlerType = _handlerRegistry.GetRequestHandlerType<TResponse>(requestType);
         var expectedGenericInterfaceType = typeof(IRequestHandler<,>).MakeGenericType(requestType, responseType);
         if (!expectedGenericInterfaceType.IsAssignableFrom(requestHandlerType))
         {
-            throw new InvalidOperationException(
-                $"Handler {requestHandlerType.Name} is not implementing IRequestHandler<{requestType}, {responseType.Name}>");
+            // handlers of requests responding with a SuccessResponse may implement the single arg interface
+            var expectedSuccessInterfaceType = responseType == typeof(SuccessResponse)
+                ? typeof(IRequestHandler<>).MakeGenericType(requestType)
+                : null;
+
+            if (expectedSuccessInterfaceType?.IsAssignableFrom(requestHandlerType) != true)
+            {
+                throw new InvalidOperationException(
+                    $"Handler {requestHandlerType.Name} is not implementing IRequestHandler<{requestType}, {responseType.Name}>");
+            }
+
+            expectedGenericInterfaceType = expectedSuccessInterfaceType;
         }
 
         TResponse response = null!;
 
         await _application.Invoker.InvokeAsync(async (sp, ct) =>
         {
-            requestor ??= _options.DefaultRequestor;
             var handler = sp.GetRequiredService(requestHandlerType);
 
             // ReSharper disable once SuspiciousTypeConversion.Global
@@ -140,7 +190,7 @@ internal class ApplicationMediator : IApplicationMediator
                         $"Handler {requestHandlerType.Name} does not have an InitializeAsync method");
                 }
 
-                await (ValueTask)(methodInfo.Invoke(handler, [request, cancellation]) ?? ValueTask.CompletedTask);
+                await (ValueTask)(methodInfo.Invoke(handler, [request, ct]) ?? ValueTask.CompletedTask);
             }
             
 
@@ -168,7 +218,7 @@ internal class ApplicationMediator : IApplicationMediator
                 }
 
                 var isAuthorized =
-                    await (ValueTask<bool>)(methodInfo.Invoke(handler, [requestor, request, cancellation])
+                    await (ValueTask<bool>)(methodInfo.Invoke(handler, [requestor, request, ct])
                                             ?? ValueTask.FromResult(false));
                 if (isAuthorized != true)
                 {
@@ -176,7 +226,12 @@ internal class ApplicationMediator : IApplicationMediator
                 }
             }
 
-            var handleAsyncMethod = requestHandlerType.GetMethod("HandleAsync");
+            // resolving the method on the interface (and not on the implementation) avoids ambiguity when a
+            // handler implements multiple handler interfaces, and also supports explicit implementations
+            var handleAsyncMethod = expectedGenericInterfaceType.GetMethod(
+                nameof(IRequestHandler<,>.HandleAsync),
+                BindingFlags.Instance | BindingFlags.Public);
+
             if (handleAsyncMethod == null)
             {
                 throw new InvalidOperationException(
@@ -185,7 +240,7 @@ internal class ApplicationMediator : IApplicationMediator
 
             try
             {
-                var task = (ValueTask<TResponse>)handleAsyncMethod.Invoke(handler, [request, cancellation])!;
+                var task = (ValueTask<TResponse>)handleAsyncMethod.Invoke(handler, [request, ct])!;
                 response = await task.ConfigureAwait(false);
             }
             catch (TargetInvocationException tex)

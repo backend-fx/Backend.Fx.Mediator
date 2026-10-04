@@ -165,6 +165,106 @@ public class TheMediatorFeature : IAsyncLifetime
     }
 
     [Fact]
+    public async Task UsesTheDefaultRequestorWhenNoRequestorIsGiven()
+    {
+        var response = await _application.RequestAsync(
+            new MyIdentityProbeRequest(),
+            cancellation: TestContext.Current.CancellationToken);
+
+        response.IdentityName.ShouldBe("TestUser");
+    }
+
+    [Fact]
+    public async Task UsesTheGivenRequestor()
+    {
+        var response = await _application.RequestAsync(
+            new MyIdentityProbeRequest(),
+            new GenericIdentity("SomebodyElse"),
+            TestContext.Current.CancellationToken);
+
+        response.IdentityName.ShouldBe("SomebodyElse");
+    }
+
+    [Fact]
+    public async Task CallsTheSingleArgRequestHandler()
+    {
+        var response = await _application.RequestAsync(
+            new MySuccessRequest(),
+            cancellation: TestContext.Current.CancellationToken);
+
+        response.ShouldNotBeNull();
+        MySuccessRequestHandler.WasCalled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task CallsHandlersThatHandleMultipleNotificationTypes()
+    {
+        await _application.NotifyAsync(new MyTestNotification4());
+        await _application.NotifyAsync(new MyTestNotification5());
+
+        A.CallTo(() =>
+                MyMultiNotificationHandler.Spy4.HandleAsync(A<MyTestNotification4>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+
+        A.CallTo(() =>
+                MyMultiNotificationHandler.Spy5.HandleAsync(A<MyTestNotification5>._, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task CallsHandlersThatHandleRequestsAndNotifications()
+    {
+        var request = new MyMixedRequest();
+
+        var response = await _application.RequestAsync(
+            request,
+            cancellation: TestContext.Current.CancellationToken);
+
+        response.ShouldNotBeNull();
+        A.CallTo(() => MyMixedHandler.RequestSpy.HandleAsync(request, A<CancellationToken>._))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task FailingErrorHandlerDoesNotPreventRecordingTheFailedNotification()
+    {
+        A.CallTo(() =>
+                _errorHandler.HandleError(A<Type>._, A<FailingNotification>._, A<IIdentity>._, A<Exception>._))
+            .Throws<InvalidOperationException>();
+
+        await _application.NotifyAsync(new FailingNotification());
+
+        var failed = _application.CompositionRoot.ServiceProvider
+            .GetRequiredService<IFailedNotifications>()
+            .FirstOrDefault();
+        failed.ShouldNotBeNull();
+        failed.Exception.ShouldBeOfType<DivideByZeroException>();
+    }
+
+    [Fact]
+    public async Task CallsHandlersMatchingTheRuntimeNotificationType()
+    {
+        object notification = new MyTestNotification1();
+
+        await _application.NotifyAsync(notification);
+
+        A.CallTo(() =>
+                _testNotificationSpy.NotificationHandler.HandleAsync(A<MyTestNotification1>._, A<CancellationToken>._))
+            .MustHaveHappenedTwiceExactly();
+    }
+
+    [Fact]
+    public async Task DoesNotSendOutboxedNotificationsOfACancelledOperation()
+    {
+        await Assert.ThrowsAsync<DivideByZeroException>(async () =>
+            await _application.RequestAsync(
+                new MyCancelledRequest(),
+                cancellation: TestContext.Current.CancellationToken));
+
+        MyCancelledNotificationHandler.WasCalled.ShouldBeFalse();
+    }
+
+    [Fact]
     public void HasMetaData()
     {
         var handlers = _application.GetFeature<MediatorFeature>()!.MetaData;

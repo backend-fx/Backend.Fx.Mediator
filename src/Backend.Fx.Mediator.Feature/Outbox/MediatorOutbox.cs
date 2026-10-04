@@ -22,6 +22,20 @@ internal class MediatorOutbox : IMediatorOutbox
         _outbox.Enqueue(notification);
     }
     
+    public void Discard()
+    {
+        if (_outbox.IsEmpty)
+        {
+            return;
+        }
+
+        _logger.LogInformation(
+            "Discarding {Count} notifications of a cancelled operation.",
+            _outbox.Count);
+
+        _outbox.Clear();
+    }
+
     public void Dispose()
     {
         if (_outbox.IsEmpty == false)
