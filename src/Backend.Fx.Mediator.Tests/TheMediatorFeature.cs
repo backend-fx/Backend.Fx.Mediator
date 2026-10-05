@@ -31,19 +31,22 @@ public class TheMediatorFeature : IAsyncLifetime
         _application = new BackendFxApplication(
             new SimpleInjectorCompositionRoot(),
             _exceptionLogger,
-            GetType().Assembly);
+            GetType().Assembly
+        );
 
         _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_authorizedRequestSpy));
         _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_testRequestSpy));
         _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_testNotificationSpy));
         _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_initializedRequestSpy));
 
-        _application.EnableFeature(new MediatorFeature(opt =>
-        {
-            opt.DefaultRequestor = new GenericIdentity("TestUser");
-            opt.ErrorHandler = _errorHandler;
-            opt.AutoNotifyResponses = true;
-        }));
+        _application.EnableFeature(
+            new MediatorFeature(opt =>
+            {
+                opt.DefaultRequestor = new GenericIdentity("TestUser");
+                opt.ErrorHandler = _errorHandler;
+                opt.AutoNotifyResponses = true;
+            })
+        );
     }
 
     public async ValueTask InitializeAsync() => await _application.BootAsync();
@@ -51,9 +54,17 @@ public class TheMediatorFeature : IAsyncLifetime
     [Fact]
     public async Task CallsTheSingleRequestHandler()
     {
-        await _application.RequestAsync(new MyTestRequest(), cancellation: TestContext.Current.CancellationToken);
+        await _application.RequestAsync(
+            new MyTestRequest(),
+            cancellation: TestContext.Current.CancellationToken
+        );
 
-        A.CallTo(() => _testRequestSpy.RequestHandler.HandleAsync(A<MyTestRequest>._, A<CancellationToken>._))
+        A.CallTo(() =>
+                _testRequestSpy.RequestHandler.HandleAsync(
+                    A<MyTestRequest>._,
+                    A<CancellationToken>._
+                )
+            )
             .MustHaveHappenedOnceExactly();
     }
 
@@ -63,7 +74,11 @@ public class TheMediatorFeature : IAsyncLifetime
         await _application.NotifyAsync(new MyTestNotification1());
 
         A.CallTo(() =>
-                _testNotificationSpy.NotificationHandler.HandleAsync(A<MyTestNotification1>._, A<CancellationToken>._))
+                _testNotificationSpy.NotificationHandler.HandleAsync(
+                    A<MyTestNotification1>._,
+                    A<CancellationToken>._
+                )
+            )
             .MustHaveHappenedTwiceExactly();
     }
 
@@ -71,7 +86,11 @@ public class TheMediatorFeature : IAsyncLifetime
     public async Task FailingRequestIsPropagated()
     {
         await Assert.ThrowsAsync<DivideByZeroException>(async () =>
-            await _application.RequestAsync(new FailingRequest(), cancellation: TestContext.Current.CancellationToken));
+            await _application.RequestAsync(
+                new FailingRequest(),
+                cancellation: TestContext.Current.CancellationToken
+            )
+        );
     }
 
     [Fact]
@@ -80,11 +99,18 @@ public class TheMediatorFeature : IAsyncLifetime
         await _application.NotifyAsync(new FailingNotification());
 
         A.CallTo(() =>
-                _errorHandler.HandleError(A<Type>._, A<FailingNotification>._, A<IIdentity>._,
-                    A<DivideByZeroException>._))
+                _errorHandler.HandleError(
+                    A<Type>._,
+                    A<FailingNotification>._,
+                    A<IIdentity>._,
+                    A<DivideByZeroException>._
+                )
+            )
             .MustHaveHappenedOnceExactly();
 
-        var failed = _application.CompositionRoot.ServiceProvider.GetRequiredService<IFailedNotifications>().FirstOrDefault();
+        var failed = _application
+            .CompositionRoot.ServiceProvider.GetRequiredService<IFailedNotifications>()
+            .FirstOrDefault();
         failed.ShouldNotBeNull();
         failed.Exception.ShouldBeOfType<DivideByZeroException>();
     }
@@ -93,13 +119,24 @@ public class TheMediatorFeature : IAsyncLifetime
     public async Task CallsIsAuthorizedOnAuthorizedHandler()
     {
         A.CallTo(() =>
-                _authorizedRequestSpy.AuthorizedHandler1.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
+                _authorizedRequestSpy.AuthorizedHandler1.IsAuthorizedAsync(
+                    A<IIdentity>._,
+                    A<CancellationToken>._
+                )
+            )
             .Returns(true);
 
-        await _application.RequestAsync(new MyAuthorizedRequest1(), cancellation: TestContext.Current.CancellationToken);
+        await _application.RequestAsync(
+            new MyAuthorizedRequest1(),
+            cancellation: TestContext.Current.CancellationToken
+        );
 
         A.CallTo(() =>
-                _authorizedRequestSpy.AuthorizedHandler1.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
+                _authorizedRequestSpy.AuthorizedHandler1.IsAuthorizedAsync(
+                    A<IIdentity>._,
+                    A<CancellationToken>._
+                )
+            )
             .MustHaveHappenedOnceExactly();
     }
 
@@ -109,25 +146,40 @@ public class TheMediatorFeature : IAsyncLifetime
         var request = new MyAuthorizedRequest2();
 
         A.CallTo(() =>
-                _authorizedRequestSpy.AuthorizedHandler2.IsAuthorizedAsync(A<IIdentity>._, request,
-                    A<CancellationToken>._))
+                _authorizedRequestSpy.AuthorizedHandler2.IsAuthorizedAsync(
+                    A<IIdentity>._,
+                    request,
+                    A<CancellationToken>._
+                )
+            )
             .Returns(true);
 
-        await _application.RequestAsync(request, cancellation: TestContext.Current.CancellationToken);
+        await _application.RequestAsync(
+            request,
+            cancellation: TestContext.Current.CancellationToken
+        );
 
         A.CallTo(() =>
-                _authorizedRequestSpy.AuthorizedHandler2.IsAuthorizedAsync(A<IIdentity>._, request,
-                    A<CancellationToken>._))
+                _authorizedRequestSpy.AuthorizedHandler2.IsAuthorizedAsync(
+                    A<IIdentity>._,
+                    request,
+                    A<CancellationToken>._
+                )
+            )
             .MustHaveHappenedOnceExactly();
     }
 
     [Fact]
     public async Task CallsInitializeOnInitializableHandler()
     {
-        await _application.RequestAsync(new MyInitializedRequest(), cancellation: TestContext.Current.CancellationToken);
+        await _application.RequestAsync(
+            new MyInitializedRequest(),
+            cancellation: TestContext.Current.CancellationToken
+        );
 
         A.CallTo(() =>
-                _initializedRequestSpy.InitializableHandler.InitializeAsync(A<CancellationToken>._))
+                _initializedRequestSpy.InitializableHandler.InitializeAsync(A<CancellationToken>._)
+            )
             .MustHaveHappenedOnceExactly();
     }
 
@@ -137,7 +189,11 @@ public class TheMediatorFeature : IAsyncLifetime
         await _application.NotifyAsync(new MyTestNotification3());
 
         A.CallTo(() =>
-                TheConcreteNotificationHandler3.Spy.HandleAsync(A<MyTestNotification3>._, A<CancellationToken>._))
+                TheConcreteNotificationHandler3.Spy.HandleAsync(
+                    A<MyTestNotification3>._,
+                    A<CancellationToken>._
+                )
+            )
             .MustHaveHappenedOnceExactly();
     }
 
@@ -146,10 +202,14 @@ public class TheMediatorFeature : IAsyncLifetime
     {
         Fake.ClearRecordedCalls(MyTestResponseHandler.Spy);
 
-        await _application.RequestAsync(new MyTestRequest(), cancellation: TestContext.Current.CancellationToken);
+        await _application.RequestAsync(
+            new MyTestRequest(),
+            cancellation: TestContext.Current.CancellationToken
+        );
 
         A.CallTo(() =>
-                MyTestResponseHandler.Spy.HandleAsync(A<TestResponse>._, A<CancellationToken>._))
+                MyTestResponseHandler.Spy.HandleAsync(A<TestResponse>._, A<CancellationToken>._)
+            )
             .MustHaveHappenedOnceExactly();
     }
 
@@ -157,11 +217,19 @@ public class TheMediatorFeature : IAsyncLifetime
     public async Task IsAuthorizedThrowsForbiddenException()
     {
         A.CallTo(() =>
-                _authorizedRequestSpy.AuthorizedHandler1.IsAuthorizedAsync(A<IIdentity>._, A<CancellationToken>._))
+                _authorizedRequestSpy.AuthorizedHandler1.IsAuthorizedAsync(
+                    A<IIdentity>._,
+                    A<CancellationToken>._
+                )
+            )
             .Returns(false);
 
         await Assert.ThrowsAsync<ForbiddenException>(async () =>
-            await _application.RequestAsync(new MyAuthorizedRequest1(), cancellation: TestContext.Current.CancellationToken));
+            await _application.RequestAsync(
+                new MyAuthorizedRequest1(),
+                cancellation: TestContext.Current.CancellationToken
+            )
+        );
     }
 
     [Fact]
@@ -169,7 +237,8 @@ public class TheMediatorFeature : IAsyncLifetime
     {
         var response = await _application.RequestAsync(
             new MyIdentityProbeRequest(),
-            cancellation: TestContext.Current.CancellationToken);
+            cancellation: TestContext.Current.CancellationToken
+        );
 
         response.IdentityName.ShouldBe("TestUser");
     }
@@ -180,7 +249,8 @@ public class TheMediatorFeature : IAsyncLifetime
         var response = await _application.RequestAsync(
             new MyIdentityProbeRequest(),
             new GenericIdentity("SomebodyElse"),
-            TestContext.Current.CancellationToken);
+            TestContext.Current.CancellationToken
+        );
 
         response.IdentityName.ShouldBe("SomebodyElse");
     }
@@ -190,7 +260,8 @@ public class TheMediatorFeature : IAsyncLifetime
     {
         var response = await _application.RequestAsync(
             new MySuccessRequest(),
-            cancellation: TestContext.Current.CancellationToken);
+            cancellation: TestContext.Current.CancellationToken
+        );
 
         response.ShouldNotBeNull();
         MySuccessRequestHandler.WasCalled.ShouldBeTrue();
@@ -203,11 +274,19 @@ public class TheMediatorFeature : IAsyncLifetime
         await _application.NotifyAsync(new MyTestNotification5());
 
         A.CallTo(() =>
-                MyMultiNotificationHandler.Spy4.HandleAsync(A<MyTestNotification4>._, A<CancellationToken>._))
+                MyMultiNotificationHandler.Spy4.HandleAsync(
+                    A<MyTestNotification4>._,
+                    A<CancellationToken>._
+                )
+            )
             .MustHaveHappenedOnceExactly();
 
         A.CallTo(() =>
-                MyMultiNotificationHandler.Spy5.HandleAsync(A<MyTestNotification5>._, A<CancellationToken>._))
+                MyMultiNotificationHandler.Spy5.HandleAsync(
+                    A<MyTestNotification5>._,
+                    A<CancellationToken>._
+                )
+            )
             .MustHaveHappenedOnceExactly();
     }
 
@@ -218,7 +297,8 @@ public class TheMediatorFeature : IAsyncLifetime
 
         var response = await _application.RequestAsync(
             request,
-            cancellation: TestContext.Current.CancellationToken);
+            cancellation: TestContext.Current.CancellationToken
+        );
 
         response.ShouldNotBeNull();
         A.CallTo(() => MyMixedHandler.RequestSpy.HandleAsync(request, A<CancellationToken>._))
@@ -229,13 +309,19 @@ public class TheMediatorFeature : IAsyncLifetime
     public async Task FailingErrorHandlerDoesNotPreventRecordingTheFailedNotification()
     {
         A.CallTo(() =>
-                _errorHandler.HandleError(A<Type>._, A<FailingNotification>._, A<IIdentity>._, A<Exception>._))
+                _errorHandler.HandleError(
+                    A<Type>._,
+                    A<FailingNotification>._,
+                    A<IIdentity>._,
+                    A<Exception>._
+                )
+            )
             .Throws<InvalidOperationException>();
 
         await _application.NotifyAsync(new FailingNotification());
 
-        var failed = _application.CompositionRoot.ServiceProvider
-            .GetRequiredService<IFailedNotifications>()
+        var failed = _application
+            .CompositionRoot.ServiceProvider.GetRequiredService<IFailedNotifications>()
             .FirstOrDefault();
         failed.ShouldNotBeNull();
         failed.Exception.ShouldBeOfType<DivideByZeroException>();
@@ -249,7 +335,11 @@ public class TheMediatorFeature : IAsyncLifetime
         await _application.NotifyAsync(notification);
 
         A.CallTo(() =>
-                _testNotificationSpy.NotificationHandler.HandleAsync(A<MyTestNotification1>._, A<CancellationToken>._))
+                _testNotificationSpy.NotificationHandler.HandleAsync(
+                    A<MyTestNotification1>._,
+                    A<CancellationToken>._
+                )
+            )
             .MustHaveHappenedTwiceExactly();
     }
 
@@ -259,7 +349,9 @@ public class TheMediatorFeature : IAsyncLifetime
         await Assert.ThrowsAsync<DivideByZeroException>(async () =>
             await _application.RequestAsync(
                 new MyCancelledRequest(),
-                cancellation: TestContext.Current.CancellationToken));
+                cancellation: TestContext.Current.CancellationToken
+            )
+        );
 
         MyCancelledNotificationHandler.WasCalled.ShouldBeFalse();
     }
@@ -269,7 +361,10 @@ public class TheMediatorFeature : IAsyncLifetime
     {
         var handlers = _application.GetFeature<MediatorFeature>()!.MetaData;
         handlers.ShouldNotBeEmpty();
-        handlers.Single(md => md.HandlerType == typeof(MyAuthorizedRequestHandler1)).IsApiGet().ShouldBeTrue();
+        handlers
+            .Single(md => md.HandlerType == typeof(MyAuthorizedRequestHandler1))
+            .IsApiGet()
+            .ShouldBeTrue();
     }
 
     public async ValueTask DisposeAsync()

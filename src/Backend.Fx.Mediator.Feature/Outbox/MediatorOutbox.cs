@@ -8,7 +8,7 @@ internal class MediatorOutbox : IMediatorOutbox
 {
     private readonly ILogger _logger = Log.Create<MediatorOutbox>();
     private readonly ConcurrentQueue<Func<CancellationToken, Task>> _outbox = new();
-    
+
     public async ValueTask FlushAsync(CancellationToken cancellation)
     {
         while (_outbox.TryDequeue(out var func))
@@ -21,7 +21,7 @@ internal class MediatorOutbox : IMediatorOutbox
     {
         _outbox.Enqueue(notification);
     }
-    
+
     public void Discard()
     {
         if (_outbox.IsEmpty)
@@ -31,7 +31,8 @@ internal class MediatorOutbox : IMediatorOutbox
 
         _logger.LogInformation(
             "Discarding {Count} notifications of a cancelled operation.",
-            _outbox.Count);
+            _outbox.Count
+        );
 
         _outbox.Clear();
     }
@@ -42,7 +43,8 @@ internal class MediatorOutbox : IMediatorOutbox
         {
             _logger.LogWarning(
                 "Mediator outbox is being disposed but still has {Count} notifications in it.",
-                _outbox.Count);
+                _outbox.Count
+            );
         }
     }
 

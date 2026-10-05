@@ -24,19 +24,25 @@ internal class MediatorModule : IModule
 
     public void Register(ICompositionRoot compositionRoot)
     {
-        compositionRoot.Register(ServiceDescriptor.Singleton<IFailedNotifications, FailedNotifications>());
-        
+        compositionRoot.Register(
+            ServiceDescriptor.Singleton<IFailedNotifications, FailedNotifications>()
+        );
+
         // scan assemblies for request and notification handlers and register them
         HandlerRegistry = new HandlerRegistry(_application.Assemblies);
         foreach (var handlerType in HandlerRegistry)
         {
-            compositionRoot.Register(new ServiceDescriptor(handlerType, handlerType, ServiceLifetime.Scoped));
+            compositionRoot.Register(
+                new ServiceDescriptor(handlerType, handlerType, ServiceLifetime.Scoped)
+            );
         }
 
         // register the application mediator as singleton
         compositionRoot.Register(
             ServiceDescriptor.Singleton<IApplicationMediator>(
-                new ApplicationMediator(_application, HandlerRegistry, _options)));
+                new ApplicationMediator(_application, HandlerRegistry, _options)
+            )
+        );
 
         // register the user code facing, scoped mediator (with optional addon decorators)
         compositionRoot.Register(ServiceDescriptor.Scoped<IMediator, Mediator>());
@@ -45,12 +51,16 @@ internal class MediatorModule : IModule
         {
             compositionRoot.Register(ServiceDescriptor.Scoped<IMediatorOutbox, MediatorOutbox>());
             compositionRoot.RegisterDecorator(ServiceDescriptor.Scoped<IMediator, WithOutbox>());
-            compositionRoot.RegisterDecorator(ServiceDescriptor.Scoped<IOperation, FlushMediatorOutboxOperation>());
+            compositionRoot.RegisterDecorator(
+                ServiceDescriptor.Scoped<IOperation, FlushMediatorOutboxOperation>()
+            );
         }
 
         if (_options.AutoNotifyResponses)
         {
-            compositionRoot.RegisterDecorator(ServiceDescriptor.Scoped<IMediator, WithAutoNotification>());
+            compositionRoot.RegisterDecorator(
+                ServiceDescriptor.Scoped<IMediator, WithAutoNotification>()
+            );
         }
     }
 }

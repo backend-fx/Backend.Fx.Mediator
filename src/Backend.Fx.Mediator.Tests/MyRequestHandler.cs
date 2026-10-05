@@ -12,7 +12,10 @@ public class MyRequestHandler : IRequestHandler<MyTestRequest, TestResponse>
         _spy = spy;
     }
 
-    public async ValueTask<TestResponse> HandleAsync(MyTestRequest request, CancellationToken cancellation = default)
+    public async ValueTask<TestResponse> HandleAsync(
+        MyTestRequest request,
+        CancellationToken cancellation = default
+    )
     {
         await Task.Delay(50, cancellation);
         return await _spy.RequestHandler.HandleAsync(request, cancellation);

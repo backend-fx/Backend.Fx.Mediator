@@ -17,13 +17,16 @@ internal class HandlerRegistry : IEnumerable<Type>
 
         foreach (var candidateType in candidateTypes)
         {
-            var implementedInterfaces = candidateType.GetTypeInfo()
-                .ImplementedInterfaces
-                .Where(i => i.IsGenericType)
+            var implementedInterfaces = candidateType
+                .GetTypeInfo()
+                .ImplementedInterfaces.Where(i => i.IsGenericType)
                 .ToArray();
 
-            foreach (var notificationInterface in implementedInterfaces
-                         .Where(i => i.GetGenericTypeDefinition() == typeof(INotificationHandler<>)))
+            foreach (
+                var notificationInterface in implementedInterfaces.Where(i =>
+                    i.GetGenericTypeDefinition() == typeof(INotificationHandler<>)
+                )
+            )
             {
                 var key = new HandlerKey(notificationInterface.GenericTypeArguments[0]);
                 handlers.Add((key, candidateType));
@@ -37,18 +40,23 @@ internal class HandlerRegistry : IEnumerable<Type>
             {
                 var key = new HandlerKey(
                     requestInterface.GenericTypeArguments[0],
-                    requestInterface.GenericTypeArguments[1]);
+                    requestInterface.GenericTypeArguments[1]
+                );
                 handlers.Add((key, candidateType));
             }
 
             // handlers of requests responding with a SuccessResponse may implement the single arg interface
-            foreach (var successRequestInterface in implementedInterfaces
-                         .Where(i => i.GetGenericTypeDefinition() == typeof(IRequestHandler<>)))
+            foreach (
+                var successRequestInterface in implementedInterfaces.Where(i =>
+                    i.GetGenericTypeDefinition() == typeof(IRequestHandler<>)
+                )
+            )
             {
                 var requestType = successRequestInterface.GenericTypeArguments[0];
-                var isAlsoImplementingTheTwoArgInterface = requestInterfaces.Any(
-                    ri => ri.GenericTypeArguments[0] == requestType
-                          && ri.GenericTypeArguments[1] == typeof(SuccessResponse));
+                var isAlsoImplementingTheTwoArgInterface = requestInterfaces.Any(ri =>
+                    ri.GenericTypeArguments[0] == requestType
+                    && ri.GenericTypeArguments[1] == typeof(SuccessResponse)
+                );
 
                 if (isAlsoImplementingTheTwoArgInterface)
                 {
@@ -60,9 +68,12 @@ internal class HandlerRegistry : IEnumerable<Type>
             }
         }
 
-        _handlerTypeLookup = handlers.ToLookup(tuple => tuple.handlerKey, tuple => tuple.handlerType);
+        _handlerTypeLookup = handlers.ToLookup(
+            tuple => tuple.handlerKey,
+            tuple => tuple.handlerType
+        );
     }
-    
+
     public Type GetRequestHandlerType<TResponse>(Type requestType)
     {
         var key = new HandlerKey(requestType, typeof(TResponse));
@@ -72,21 +83,28 @@ internal class HandlerRegistry : IEnumerable<Type>
         {
             1 => handlerTypes[0],
             0 => throw new InvalidOperationException(
-                $"No handler found for request type {requestType.Name} with response type {typeof(TResponse).Name}"),
+                $"No handler found for request type {requestType.Name} with response type {typeof(TResponse).Name}"
+            ),
             _ => throw new InvalidOperationException(
                 $"Multiple handlers found for request type {requestType.Name} with response type "
-                + $"{typeof(TResponse).Name}: {string.Join(", ", handlerTypes.Select(t => t.Name))}. "
-                + "A request must be handled by exactly one handler.")
+                    + $"{typeof(TResponse).Name}: {string.Join(", ", handlerTypes.Select(t => t.Name))}. "
+                    + "A request must be handled by exactly one handler."
+            ),
         };
     }
 
-    public (Type notificationType, Type handlerType)[] GetNotificationHandlers(params Type[] notificationTypes)
+    public (Type notificationType, Type handlerType)[] GetNotificationHandlers(
+        params Type[] notificationTypes
+    )
     {
         // a notification may be dispatched by its runtime type as well as by the statically known type it was
         // published as, but every handler must be notified only once, preferring the most specific type
         return notificationTypes
             .Distinct()
-            .SelectMany(nt => _handlerTypeLookup[new HandlerKey(nt)].Select(ht => (notificationType: nt, handlerType: ht)))
+            .SelectMany(nt =>
+                _handlerTypeLookup[new HandlerKey(nt)]
+                    .Select(ht => (notificationType: nt, handlerType: ht))
+            )
             .DistinctBy(tuple => tuple.handlerType)
             .ToArray();
     }

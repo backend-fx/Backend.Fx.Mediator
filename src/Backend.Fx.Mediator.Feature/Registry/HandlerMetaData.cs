@@ -21,7 +21,8 @@ public record HandlerMetaData
 
     public Type HandlerType { get; init; }
 
-    public ServiceDescriptor ServiceDescriptor => new(HandlerType, HandlerType, ServiceLifetime.Scoped);
+    public ServiceDescriptor ServiceDescriptor =>
+        new(HandlerType, HandlerType, ServiceLifetime.Scoped);
 
     public bool IsApiGet() => HandlerType.GetCustomAttribute<ApiGetAttribute>() != null;
 

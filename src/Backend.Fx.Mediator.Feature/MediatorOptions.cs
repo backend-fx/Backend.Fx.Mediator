@@ -9,7 +9,8 @@ public class MediatorOptions
     /// <summary>
     /// This error handler is being executed when handling a notification fails. Default to an empty operation.
     /// </summary>
-    public INotificationErrorHandler ErrorHandler { get; set; } = new DoNothingNotificationErrorHandler();
+    public INotificationErrorHandler ErrorHandler { get; set; } =
+        new DoNothingNotificationErrorHandler();
 
     /// <summary>
     /// The identity to assume when no specific identity is provided when calling the Invoke method of the

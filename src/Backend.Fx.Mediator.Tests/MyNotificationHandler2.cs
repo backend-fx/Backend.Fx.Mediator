@@ -12,6 +12,8 @@ public class MyNotificationHandler2 : INotificationHandler<MyTestNotification1>
         _spy = spy;
     }
 
-    public ValueTask HandleAsync(MyTestNotification1 notification1, CancellationToken cancellation = default)
-        => _spy.NotificationHandler.HandleAsync(notification1, cancellation);
+    public ValueTask HandleAsync(
+        MyTestNotification1 notification1,
+        CancellationToken cancellation = default
+    ) => _spy.NotificationHandler.HandleAsync(notification1, cancellation);
 }

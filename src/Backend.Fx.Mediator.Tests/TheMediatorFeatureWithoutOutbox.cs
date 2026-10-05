@@ -24,18 +24,21 @@ public class TheMediatorFeatureWithoutOutbox : IAsyncLifetime
         _application = new BackendFxApplication(
             new SimpleInjectorCompositionRoot(),
             A.Fake<IExceptionLogger>(),
-            GetType().Assembly);
+            GetType().Assembly
+        );
 
         _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_authorizedRequestSpy));
         _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_testRequestSpy));
         _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_testNotificationSpy));
         _application.CompositionRoot.Register(ServiceDescriptor.Singleton(_initializedRequestSpy));
 
-        _application.EnableFeature(new MediatorFeature(opt =>
-        {
-            opt.UseOutbox = false;
-            opt.AutoNotifyResponses = true;
-        }));
+        _application.EnableFeature(
+            new MediatorFeature(opt =>
+            {
+                opt.UseOutbox = false;
+                opt.AutoNotifyResponses = true;
+            })
+        );
     }
 
     public async ValueTask InitializeAsync() => await _application.BootAsync();
@@ -45,7 +48,8 @@ public class TheMediatorFeatureWithoutOutbox : IAsyncLifetime
     {
         await _application.RequestAsync(
             new MyAutoNotifiedRequest(),
-            cancellation: TestContext.Current.CancellationToken);
+            cancellation: TestContext.Current.CancellationToken
+        );
 
         MyAutoNotifiedResponseHandler.HasCompleted.ShouldBeTrue();
     }

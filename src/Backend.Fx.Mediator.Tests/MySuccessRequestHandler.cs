@@ -11,7 +11,8 @@ public class MySuccessRequestHandler : IRequestHandler<MySuccessRequest>
 
     public ValueTask<SuccessResponse> HandleAsync(
         MySuccessRequest request,
-        CancellationToken cancellation = default)
+        CancellationToken cancellation = default
+    )
     {
         WasCalled = true;
         return ValueTask.FromResult(new SuccessResponse());

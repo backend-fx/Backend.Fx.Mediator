@@ -4,7 +4,8 @@ using FakeItEasy;
 
 namespace Backend.Fx.Mediator.Tests;
 
-public abstract class AnAbstractNotificationHandler<TNotification> : INotificationHandler<TNotification>
+public abstract class AnAbstractNotificationHandler<TNotification>
+    : INotificationHandler<TNotification>
 {
     private readonly INotificationHandler<TNotification> _spy;
 
@@ -13,18 +14,25 @@ public abstract class AnAbstractNotificationHandler<TNotification> : INotificati
         _spy = spy;
     }
 
-    public ValueTask HandleAsync(TNotification notification, CancellationToken cancellation = default)
+    public ValueTask HandleAsync(
+        TNotification notification,
+        CancellationToken cancellation = default
+    )
     {
         return _spy.HandleAsync(notification, cancellation);
     }
 }
 
-public class TheConcreteNotificationHandler3() : AnAbstractNotificationHandler<MyTestNotification3>(Spy)
+public class TheConcreteNotificationHandler3()
+    : AnAbstractNotificationHandler<MyTestNotification3>(Spy)
 {
-    public static INotificationHandler<MyTestNotification3> Spy { get; } = A.Fake<INotificationHandler<MyTestNotification3>>();
+    public static INotificationHandler<MyTestNotification3> Spy { get; } =
+        A.Fake<INotificationHandler<MyTestNotification3>>();
 }
 
-public class TheConcreteNotificationHandler2() : AnAbstractNotificationHandler<MyTestNotification2>(Spy)
+public class TheConcreteNotificationHandler2()
+    : AnAbstractNotificationHandler<MyTestNotification2>(Spy)
 {
-    public static INotificationHandler<MyTestNotification2> Spy { get; } = A.Fake<INotificationHandler<MyTestNotification2>>();
+    public static INotificationHandler<MyTestNotification2> Spy { get; } =
+        A.Fake<INotificationHandler<MyTestNotification2>>();
 }
