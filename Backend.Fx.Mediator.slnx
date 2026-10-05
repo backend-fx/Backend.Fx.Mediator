@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/Backend.Fx.Mediator.Feature/Backend.Fx.Mediator.Feature.csproj" />
+  <Project Path="src/Backend.Fx.Mediator.Tests/Backend.Fx.Mediator.Tests.csproj" />
+  <Project Path="src/Backend.Fx.Mediator/Backend.Fx.Mediator.csproj" />
+</Solution>
