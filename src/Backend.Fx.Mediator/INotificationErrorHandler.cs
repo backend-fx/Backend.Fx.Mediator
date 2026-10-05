@@ -6,6 +6,11 @@ namespace Backend.Fx.Mediator;
 [PublicAPI]
 public interface INotificationErrorHandler
 {
-    void HandleError<TNotification>(Type handlerType, TNotification notification, IIdentity sender, Exception exception)
+    void HandleError<TNotification>(
+        Type handlerType,
+        TNotification notification,
+        IIdentity sender,
+        Exception exception
+    )
         where TNotification : notnull;
 }

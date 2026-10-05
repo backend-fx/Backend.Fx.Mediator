@@ -6,7 +6,7 @@ namespace Backend.Fx.Mediator.Feature.Outbox;
 internal class FlushMediatorOutboxOperation : IOperation
 {
     private readonly IOperation _operation;
-    
+
     private readonly IMediatorOutbox _outbox;
 
     public FlushMediatorOutboxOperation(IMediatorOutbox outbox, IOperation operation)

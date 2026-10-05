@@ -11,7 +11,11 @@ public class ThreadSafeBoundedQueue<T> : IEnumerable<T>
     public ThreadSafeBoundedQueue(int capacity)
     {
         if (capacity < 1)
-            throw new ArgumentOutOfRangeException(nameof(capacity), capacity, "Capacity must be greater than 0.");
+            throw new ArgumentOutOfRangeException(
+                nameof(capacity),
+                capacity,
+                "Capacity must be greater than 0."
+            );
 
         _capacity = capacity;
     }
@@ -28,7 +32,8 @@ public class ThreadSafeBoundedQueue<T> : IEnumerable<T>
 
     public IEnumerator<T> GetEnumerator()
     {
-        lock (_lock) return _queue.ToList().GetEnumerator();
+        lock (_lock)
+            return _queue.ToList().GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

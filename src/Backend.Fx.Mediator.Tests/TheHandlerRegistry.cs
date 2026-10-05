@@ -17,8 +17,9 @@ public class TheHandlerRegistry
     [Fact]
     public void ComplainsAboutMultipleHandlersForTheSameRequest()
     {
-        var exception = Should.Throw<InvalidOperationException>(
-            () => _sut.GetRequestHandlerType<AmbiguousResponse>(typeof(MyAmbiguousRequest)));
+        var exception = Should.Throw<InvalidOperationException>(() =>
+            _sut.GetRequestHandlerType<AmbiguousResponse>(typeof(MyAmbiguousRequest))
+        );
 
         exception.Message.ShouldContain(nameof(MyAmbiguousRequestHandler1));
         exception.Message.ShouldContain(nameof(MyAmbiguousRequestHandler2));
@@ -27,8 +28,9 @@ public class TheHandlerRegistry
     [Fact]
     public void ComplainsAboutMissingHandlerForARequest()
     {
-        var exception = Should.Throw<InvalidOperationException>(
-            () => _sut.GetRequestHandlerType<AmbiguousResponse>(typeof(MyTestRequest)));
+        var exception = Should.Throw<InvalidOperationException>(() =>
+            _sut.GetRequestHandlerType<AmbiguousResponse>(typeof(MyTestRequest))
+        );
 
         exception.Message.ShouldContain("No handler found");
     }

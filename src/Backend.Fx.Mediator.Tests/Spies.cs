@@ -14,14 +14,19 @@ public class MyTestRequestSpy
 public class MyAuthorizedRequestSpy
 {
     public IAuthorizedHandler AuthorizedHandler1 { get; } = A.Fake<IAuthorizedHandler>();
-    public IAuthorizedHandler<MyAuthorizedRequest2> AuthorizedHandler2 { get; } = A.Fake<IAuthorizedHandler<MyAuthorizedRequest2>>();
+    public IAuthorizedHandler<MyAuthorizedRequest2> AuthorizedHandler2 { get; } =
+        A.Fake<IAuthorizedHandler<MyAuthorizedRequest2>>();
 
     public ValueTask<bool> IsAuthorizedAsync(IIdentity identity, CancellationToken cancellation)
     {
         return AuthorizedHandler1.IsAuthorizedAsync(identity, cancellation);
     }
-    
-    public ValueTask<bool> IsAuthorizedAsync(IIdentity identity, MyAuthorizedRequest2 request, CancellationToken cancellation)
+
+    public ValueTask<bool> IsAuthorizedAsync(
+        IIdentity identity,
+        MyAuthorizedRequest2 request,
+        CancellationToken cancellation
+    )
     {
         return AuthorizedHandler2.IsAuthorizedAsync(identity, request, cancellation);
     }
@@ -35,8 +40,7 @@ public class MyTestNotificationSpy
 
 public class MyInitializedRequestSpy
 {
-    public IInitializableHandler InitializableHandler { get; } =
-        A.Fake<IInitializableHandler>();
+    public IInitializableHandler InitializableHandler { get; } = A.Fake<IInitializableHandler>();
 
     public ValueTask InitializeAsync(CancellationToken cancellation)
     {

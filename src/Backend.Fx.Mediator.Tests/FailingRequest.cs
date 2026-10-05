@@ -8,7 +8,10 @@ public record FailingRequest : IRequest<SuccessResponse>;
 
 public class FailingRequestHandler : IRequestHandler<FailingRequest, SuccessResponse>
 {
-    public ValueTask<SuccessResponse> HandleAsync(FailingRequest request, CancellationToken cancellation = default)
+    public ValueTask<SuccessResponse> HandleAsync(
+        FailingRequest request,
+        CancellationToken cancellation = default
+    )
     {
         throw new DivideByZeroException();
     }

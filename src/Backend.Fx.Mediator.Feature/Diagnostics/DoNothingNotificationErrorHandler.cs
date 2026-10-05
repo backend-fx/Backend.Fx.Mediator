@@ -8,7 +8,7 @@ internal class DoNothingNotificationErrorHandler : INotificationErrorHandler
         Type handlerType,
         TNotification notification,
         IIdentity sender,
-        Exception exception) where TNotification : notnull
-    {
-    }
+        Exception exception
+    )
+        where TNotification : notnull { }
 }

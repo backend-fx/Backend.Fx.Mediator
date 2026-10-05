@@ -11,14 +11,14 @@ public class MyAmbiguousRequestHandler1 : IRequestHandler<MyAmbiguousRequest, Am
 {
     public ValueTask<AmbiguousResponse> HandleAsync(
         MyAmbiguousRequest request,
-        CancellationToken cancellation = default)
-        => ValueTask.FromResult(new AmbiguousResponse());
+        CancellationToken cancellation = default
+    ) => ValueTask.FromResult(new AmbiguousResponse());
 }
 
 public class MyAmbiguousRequestHandler2 : IRequestHandler<MyAmbiguousRequest, AmbiguousResponse>
 {
     public ValueTask<AmbiguousResponse> HandleAsync(
         MyAmbiguousRequest request,
-        CancellationToken cancellation = default)
-        => ValueTask.FromResult(new AmbiguousResponse());
+        CancellationToken cancellation = default
+    ) => ValueTask.FromResult(new AmbiguousResponse());
 }

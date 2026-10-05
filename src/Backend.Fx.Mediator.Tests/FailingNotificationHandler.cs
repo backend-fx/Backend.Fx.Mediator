@@ -6,7 +6,10 @@ namespace Backend.Fx.Mediator.Tests;
 
 public class FailingNotificationHandler : INotificationHandler<FailingNotification>
 {
-    public ValueTask HandleAsync(FailingNotification notification, CancellationToken cancellation = default)
+    public ValueTask HandleAsync(
+        FailingNotification notification,
+        CancellationToken cancellation = default
+    )
     {
         throw new DivideByZeroException();
     }

@@ -12,7 +12,10 @@ public class MyCancelledNotificationHandler : INotificationHandler<MyCancelledNo
 {
     public static bool WasCalled { get; private set; }
 
-    public ValueTask HandleAsync(MyCancelledNotification notification, CancellationToken cancellation = default)
+    public ValueTask HandleAsync(
+        MyCancelledNotification notification,
+        CancellationToken cancellation = default
+    )
     {
         WasCalled = true;
         return ValueTask.CompletedTask;
@@ -30,7 +33,8 @@ public class MyCancelledRequestHandler : IRequestHandler<MyCancelledRequest>
 
     public async ValueTask<SuccessResponse> HandleAsync(
         MyCancelledRequest request,
-        CancellationToken cancellation = default)
+        CancellationToken cancellation = default
+    )
     {
         await _mediator.NotifyAsync(new MyCancelledNotification(), cancellation);
         throw new DivideByZeroException();

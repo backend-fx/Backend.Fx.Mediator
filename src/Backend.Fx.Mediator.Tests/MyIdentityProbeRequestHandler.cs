@@ -9,7 +9,8 @@ public record MyIdentityProbeRequest : IRequest<IdentityProbeResponse>;
 
 public record IdentityProbeResponse(string? IdentityName);
 
-public class MyIdentityProbeRequestHandler : IRequestHandler<MyIdentityProbeRequest, IdentityProbeResponse>
+public class MyIdentityProbeRequestHandler
+    : IRequestHandler<MyIdentityProbeRequest, IdentityProbeResponse>
 {
     private readonly ICurrentTHolder<IIdentity> _identityHolder;
 
@@ -20,6 +21,6 @@ public class MyIdentityProbeRequestHandler : IRequestHandler<MyIdentityProbeRequ
 
     public ValueTask<IdentityProbeResponse> HandleAsync(
         MyIdentityProbeRequest request,
-        CancellationToken cancellation = default)
-        => ValueTask.FromResult(new IdentityProbeResponse(_identityHolder.Current.Name));
+        CancellationToken cancellation = default
+    ) => ValueTask.FromResult(new IdentityProbeResponse(_identityHolder.Current.Name));
 }

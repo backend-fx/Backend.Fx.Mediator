@@ -1,25 +1,27 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <ImplicitUsings>true</ImplicitUsings>
+    <IncludeSymbols>true</IncludeSymbols>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
 
-    <PropertyGroup>
-        <ImplicitUsings>true</ImplicitUsings>
-        <IncludeSymbols>true</IncludeSymbols>
-        <LangVersion>latest</LangVersion>
-        <Nullable>enable</Nullable>
-        <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <TargetFramework>net8.0</TargetFramework>
-    </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Backend.Fx.Mediator.Tests" />
+  </ItemGroup>
 
-    <ItemGroup>
-        <InternalsVisibleTo Include="Backend.Fx.Mediator.Tests" />
-    </ItemGroup>
-    
-    <ItemGroup>
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.401" PrivateAssets="All" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference
+      Include="Microsoft.SourceLink.GitHub"
+      Version="10.0.401"
+      PrivateAssets="All"
+    />
+  </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\Backend.Fx.Mediator\Backend.Fx.Mediator.csproj"/>
-    </ItemGroup>
-
+  <ItemGroup>
+    <ProjectReference Include="..\Backend.Fx.Mediator\Backend.Fx.Mediator.csproj" />
+  </ItemGroup>
 </Project>

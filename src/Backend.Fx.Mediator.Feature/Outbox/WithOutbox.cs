@@ -17,30 +17,45 @@ internal class WithOutbox : IMediator
         _outbox = outbox;
     }
 
-
-    public Task NotifyAsync<TNotification>(TNotification notification, CancellationToken cancellation = default)
+    public Task NotifyAsync<TNotification>(
+        TNotification notification,
+        CancellationToken cancellation = default
+    )
         where TNotification : class
     {
         _outbox.Enqueue(ct => _mediator.NotifyAsync(notification, ct));
         return Task.CompletedTask;
     }
 
-    public Task NotifyAsync<TNotification>(TNotification notification, IIdentity notifier,
-        CancellationToken cancellation = default) where TNotification : class
+    public Task NotifyAsync<TNotification>(
+        TNotification notification,
+        IIdentity notifier,
+        CancellationToken cancellation = default
+    )
+        where TNotification : class
     {
         _outbox.Enqueue(ct => _mediator.NotifyAsync(notification, notifier, ct));
         return Task.CompletedTask;
     }
 
-    public Task NotifyAsync<TNotification>(TNotification notification, INotificationErrorHandler errorHandler,
-        CancellationToken cancellation = default) where TNotification : class
+    public Task NotifyAsync<TNotification>(
+        TNotification notification,
+        INotificationErrorHandler errorHandler,
+        CancellationToken cancellation = default
+    )
+        where TNotification : class
     {
         _outbox.Enqueue(ct => _mediator.NotifyAsync(notification, errorHandler, ct));
         return Task.CompletedTask;
     }
 
-    public Task NotifyAsync<TNotification>(TNotification notification, IIdentity notifier,
-        INotificationErrorHandler errorHandler, CancellationToken cancellation = default) where TNotification : class
+    public Task NotifyAsync<TNotification>(
+        TNotification notification,
+        IIdentity notifier,
+        INotificationErrorHandler errorHandler,
+        CancellationToken cancellation = default
+    )
+        where TNotification : class
     {
         _outbox.Enqueue(ct => _mediator.NotifyAsync(notification, notifier, errorHandler, ct));
         return Task.CompletedTask;
@@ -48,12 +63,14 @@ internal class WithOutbox : IMediator
 
     public Task<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
-        CancellationToken cancellation = default) where TResponse : class
-        => _mediator.RequestAsync(request, cancellation);
+        CancellationToken cancellation = default
+    )
+        where TResponse : class => _mediator.RequestAsync(request, cancellation);
 
     public Task<TResponse> RequestAsync<TResponse>(
         IRequest<TResponse> request,
         IIdentity requestor,
-        CancellationToken cancellation = default) where TResponse : class
-        => _mediator.RequestAsync(request, requestor, cancellation);
+        CancellationToken cancellation = default
+    )
+        where TResponse : class => _mediator.RequestAsync(request, requestor, cancellation);
 }
